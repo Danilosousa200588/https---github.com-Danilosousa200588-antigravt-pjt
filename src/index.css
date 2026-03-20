@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Noto Serif", serif;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+
+  --color-rose-50: #fff8f8;
+  --color-rose-100: #fbf1f3;
+  --color-rose-200: #ffecf1;
+  --color-rose-300: #ff89ac;
+  --color-rose-400: #ab2c5d;
+  --color-rose-500: #830440;
+  
+  --color-gold-100: #ffe088;
+  --color-gold-200: #fed65b;
+  --color-gold-300: #735c00;
+}
+
+@layer base {
+  body {
+    @apply bg-rose-50 text-zinc-900 font-sans antialiased;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-lg;
+  }
+  
+  .editorial-shadow {
+    @apply shadow-[0px_12px_32px_rgba(171,44,93,0.08)];
+  }
+  
+  .primary-gradient {
+    @apply bg-gradient-to-br from-rose-400 to-rose-300;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

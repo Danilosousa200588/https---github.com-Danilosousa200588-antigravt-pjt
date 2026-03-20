@@ -1,0 +1,8 @@
+{
+  "name": "Amethyst Rose",
+  "description": "Um diário digital compartilhado para casais, com finanças, galeria, quizzes e chat com IA.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
