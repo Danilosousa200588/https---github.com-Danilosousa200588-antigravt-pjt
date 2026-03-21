@@ -28,14 +28,18 @@ export default function GalleryPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchMemories();
-  }, []);
+    if (user) {
+      fetchMemories();
+    }
+  }, [user]);
 
   const fetchMemories = async () => {
+    if (!user) return;
     setIsLoading(true);
     const { data, error } = await supabase
       .from('memories')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     
     if (data) {

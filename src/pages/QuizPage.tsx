@@ -4,6 +4,8 @@ import { GraduationCap, BookOpen, ChevronRight, CheckCircle2, XCircle, RefreshCc
 import { NURSING_QUIZZES, BIBLE_QUIZZES } from '../constants/quizzes';
 import { Quiz } from '../types';
 import { cn } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 const POINTS_PER_CORRECT = 100;
 const UNLOCK_THRESHOLDS = {
@@ -31,23 +33,26 @@ export default function QuizPage() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   
-  const [nursingPoints, setNursingPoints] = useState<number>(() => {
-    const saved = localStorage.getItem('amethyst_quiz_points_nursing');
-    return saved ? parseInt(saved) : 0;
-  });
-
-  const [biblePoints, setBiblePoints] = useState<number>(() => {
-    const saved = localStorage.getItem('amethyst_quiz_points_bible');
-    return saved ? parseInt(saved) : 0;
-  });
+  const [nursingPoints, setNursingPoints] = useState<number>(0);
+  const [biblePoints, setBiblePoints] = useState<number>(0);
+  const { user } = useAuth();
 
   useEffect(() => {
-    localStorage.setItem('amethyst_quiz_points_nursing', nursingPoints.toString());
-  }, [nursingPoints]);
-
-  useEffect(() => {
-    localStorage.setItem('amethyst_quiz_points_bible', biblePoints.toString());
-  }, [biblePoints]);
+    if (!user) return;
+    const fetchPoints = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('nursing_points, bible_points')
+        .eq('id', user.id)
+        .single();
+      
+      if (data && !error) {
+        setNursingPoints(data.nursing_points || 0);
+        setBiblePoints(data.bible_points || 0);
+      }
+    };
+    fetchPoints();
+  }, [user]);
 
   const currentPoints = selectedCategory === 'nursing' ? nursingPoints : biblePoints;
 
@@ -64,16 +69,20 @@ export default function QuizPage() {
     setIsAnswered(false);
   };
 
-  const handleOptionSelect = (index: number) => {
-    if (isAnswered) return;
+  const handleOptionSelect = async (index: number) => {
+    if (isAnswered || !user) return;
     setSelectedOption(index);
     setIsAnswered(true);
     if (index === selectedQuiz!.questions[currentQuestionIndex].correctAnswer) {
       setScore(prev => prev + 1);
       if (selectedQuiz?.category === 'nursing') {
-        setNursingPoints(prev => prev + POINTS_PER_CORRECT);
+        const newPoints = nursingPoints + POINTS_PER_CORRECT;
+        setNursingPoints(newPoints);
+        await supabase.from('profiles').update({ nursing_points: newPoints }).eq('id', user.id);
       } else {
-        setBiblePoints(prev => prev + POINTS_PER_CORRECT);
+        const newPoints = biblePoints + POINTS_PER_CORRECT;
+        setBiblePoints(newPoints);
+        await supabase.from('profiles').update({ bible_points: newPoints }).eq('id', user.id);
       }
     }
   };

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
-import { Heart, Settings, Bell, Shield, LogOut, Camera, Mail, Edit2, Check, Loader2, PlayCircle, GraduationCap } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Heart, Settings, Bell, Shield, LogOut, Camera, Mail, Edit2, Check, Loader2, PlayCircle, GraduationCap, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -13,6 +13,9 @@ export default function ProfilePage() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(profile?.username || '');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeletingLoading, setIsDeletingLoading] = useState(false);
 
   const displayName = profile?.username || user?.email?.split('@')[0] || 'Usuário';
   const avatarSeed = user?.id?.slice(0, 8) || 'default';
@@ -186,6 +189,79 @@ export default function ProfilePage() {
         <LogOut size={20} />
         Sair da Conta
       </button>
+
+      <button
+        onClick={() => setIsDeletingAccount(true)}
+        className="w-full flex items-center justify-center gap-2 p-5 text-red-500 font-bold hover:bg-red-50 rounded-3xl transition-colors mt-2"
+      >
+        <Trash2 size={20} />
+        Excluir Conta
+      </button>
+
+      {/* Delete Account Modal */}
+      <AnimatePresence>
+        {isDeletingAccount && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDeletingAccount(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-[2rem] p-8 text-center space-y-6 shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
+                <Trash2 size={32} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-headline text-2xl font-bold text-zinc-800">Cuidado!</h3>
+                <p className="text-zinc-500 text-sm">Esta ação é irreversível.</p>
+                <p className="text-zinc-500 text-sm">Todas as suas fotos, finanças e pontos serão apagados permanentemente.</p>
+              </div>
+              <div className="space-y-3 pt-2">
+                <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest text-left block w-full">Digite "excluir" para confirmar</label>
+                <input 
+                  type="text" 
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="excluir"
+                  className="w-full bg-red-50 border border-red-100 rounded-2xl p-4 text-sm text-center font-bold focus:ring-2 focus:ring-red-200 outline-none placeholder:text-red-200 text-red-600"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => {
+                    setIsDeletingAccount(false);
+                    setDeleteConfirmText('');
+                  }}
+                  disabled={isDeletingLoading}
+                  className="flex-1 py-3 bg-zinc-100 text-zinc-600 rounded-xl font-bold text-sm hover:bg-zinc-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={async () => {
+                    if (deleteConfirmText.toLowerCase() === 'excluir') {
+                      setIsDeletingLoading(true);
+                      await supabase.rpc('delete_user');
+                      await handleLogout();
+                    }
+                  }}
+                  disabled={deleteConfirmText.toLowerCase() !== 'excluir' || isDeletingLoading}
+                  className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold text-sm hover:bg-red-600 transition-colors shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {isDeletingLoading ? <Loader2 className="animate-spin" size={20} /> : 'Excluir Conta'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

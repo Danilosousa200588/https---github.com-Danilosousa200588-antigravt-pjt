@@ -4,6 +4,7 @@ import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, Target, Trash2, X, BarChart3
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface Transaction {
   id: string;
@@ -31,29 +32,28 @@ const INITIAL_DREAMS: Dream[] = [
 export default function FinancePage() {
   const { user } = useAuth();
 
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    if (!user) return INITIAL_TRANSACTIONS;
-    const saved = localStorage.getItem(`finance_transactions_${user.id}`);
-    return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
-  });
-
-  const [dreams, setDreams] = useState<Dream[]>(() => {
-    if (!user) return INITIAL_DREAMS;
-    const saved = localStorage.getItem(`finance_dreams_${user.id}`);
-    return saved ? JSON.parse(saved) : INITIAL_DREAMS;
-  });
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [dreams, setDreams] = useState<Dream[]>([]);
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(`finance_transactions_${user.id}`, JSON.stringify(transactions));
-    }
-  }, [transactions, user]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem(`finance_dreams_${user.id}`, JSON.stringify(dreams));
-    }
-  }, [dreams, user]);
+    if (!user) return;
+    const fetchData = async () => {
+      const [{ data: transactionsData }, { data: dreamsData }] = await Promise.all([
+        supabase.from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('dreams').select('*').eq('user_id', user.id)
+      ]);
+      
+      if (transactionsData) setTransactions(transactionsData);
+      if (dreamsData) setDreams(dreamsData.map(d => ({
+        id: d.id,
+        name: d.name,
+        targetDate: d.target_date,
+        targetValue: d.target_value,
+        currentValue: d.current_value
+      })));
+    };
+    fetchData();
+  }, [user]);
   
   // Transaction Modal State
   const [isAddingTransaction, setIsAddingTransaction] = useState(false);
@@ -106,33 +106,39 @@ export default function FinancePage() {
     ];
   }, [totals, transactions]);
 
-  const handleAddTransaction = () => {
-    if (!newName || !newValue) return;
+  const handleAddTransaction = async () => {
+    if (!newName || !newValue || !user) return;
     const val = newValue.replace(',', '.');
     const parsedValue = parseFloat(val);
     if (isNaN(parsedValue)) return;
 
     const color = newType === 'income' ? '#22c55e' : '#ef4444';
-    const newTransaction: Transaction = {
-      id: Date.now().toString(),
+    const newTransaction = {
+      user_id: user.id,
       name: newName,
       value: parsedValue,
       color: color,
       type: newType,
       date: new Date().toLocaleDateString('pt-BR'),
     };
-    setTransactions(prev => [...prev, newTransaction]);
+    
+    const { data } = await supabase.from('transactions').insert(newTransaction).select().single();
+    if (data) {
+      setTransactions(prev => [data, ...prev]);
+    }
     setNewName('');
     setNewValue('');
     setIsAddingTransaction(false);
   };
 
-  const handleRemoveTransaction = (id: string) => {
+  const handleRemoveTransaction = async (id: string) => {
+    if (!user) return;
+    await supabase.from('transactions').delete().eq('id', id).eq('user_id', user.id);
     setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
-  const handleAddDream = () => {
-    if (!dreamName || !dreamTarget || !dreamDate) return;
+  const handleAddDream = async () => {
+    if (!dreamName || !dreamTarget || !dreamDate || !user) return;
     const val = dreamTarget.replace(',', '.');
     const currentVal = dreamCurrent.replace(',', '.');
     const parsedTarget = parseFloat(val);
@@ -140,14 +146,24 @@ export default function FinancePage() {
     
     if (isNaN(parsedTarget)) return;
 
-    const newDream: Dream = {
-      id: Date.now().toString(),
+    const newDream = {
+      user_id: user.id,
       name: dreamName,
-      targetDate: dreamDate,
-      targetValue: parsedTarget,
-      currentValue: parsedCurrent,
+      target_date: dreamDate,
+      target_value: parsedTarget,
+      current_value: parsedCurrent,
     };
-    setDreams(prev => [...prev, newDream]);
+    
+    const { data } = await supabase.from('dreams').insert(newDream).select().single();
+    if (data) {
+      setDreams(prev => [...prev, {
+        id: data.id,
+        name: data.name,
+        targetDate: data.target_date,
+        targetValue: data.target_value,
+        currentValue: data.current_value
+      }]);
+    }
     setDreamName('');
     setDreamTarget('');
     setDreamDate('');
@@ -155,18 +171,27 @@ export default function FinancePage() {
     setIsAddingDream(false);
   };
 
-  const handleRemoveDream = (id: string) => {
+  const handleRemoveDream = async (id: string) => {
+    if (!user) return;
+    await supabase.from('dreams').delete().eq('id', id).eq('user_id', user.id);
     setDreams(prev => prev.filter(d => d.id !== id));
   };
 
-  const handleEditDream = () => {
-    if (!editingDream || !dreamName || !dreamTarget || !dreamDate) return;
+  const handleEditDream = async () => {
+    if (!editingDream || !dreamName || !dreamTarget || !dreamDate || !user) return;
     const val = dreamTarget.replace(',', '.');
     const currentVal = dreamCurrent.replace(',', '.');
     const parsedTarget = parseFloat(val);
     const parsedCurrent = parseFloat(currentVal) || 0;
     
     if (isNaN(parsedTarget)) return;
+
+    await supabase.from('dreams').update({
+      name: dreamName,
+      target_date: dreamDate,
+      target_value: parsedTarget,
+      current_value: parsedCurrent,
+    }).eq('id', editingDream.id).eq('user_id', user.id);
 
     setDreams(prev => prev.map(d => d.id === editingDream.id ? {
       ...d,
@@ -657,7 +682,8 @@ export default function FinancePage() {
                   Cancelar
                 </button>
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
+                    if (user) await supabase.from('dreams').delete().eq('user_id', user.id);
                     setDreams([]);
                     setIsClearingAllDreams(false);
                   }}
