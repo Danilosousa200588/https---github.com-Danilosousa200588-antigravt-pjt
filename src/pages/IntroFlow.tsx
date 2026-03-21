@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Sparkles, CheckSquare, ArrowRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -32,11 +32,52 @@ export default function IntroFlow() {
   const [isFinishing, setIsFinishing] = useState(false);
   const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const music = audioRef.current;
+    if (music) {
+      music.volume = 0.8;
+      music.play().catch(() => {
+        const startOnInteraction = () => {
+          music.play();
+          document.removeEventListener('click', startOnInteraction);
+          document.removeEventListener('touchstart', startOnInteraction);
+        };
+        document.addEventListener('click', startOnInteraction, { once: true });
+        document.addEventListener('touchstart', startOnInteraction, { once: true });
+      });
+    }
+  }, []);
+
+  const stopMusicSmooth = () => {
+    return new Promise<void>((resolve) => {
+      const music = audioRef.current;
+      if (!music) {
+        resolve();
+        return;
+      }
+      
+      let volume = music.volume;
+      const fade = setInterval(() => {
+        if (volume > 0.05) {
+          volume -= 0.05;
+          music.volume = volume;
+        } else {
+          music.pause();
+          clearInterval(fade);
+          resolve();
+        }
+      }, 60);
+    });
+  };
 
   const handleNextStep = async () => {
     if (step < 6) {
       setStep(prev => prev + 1);
     } else {
+      setIsFinishing(true);
+      await stopMusicSmooth();
       await finishIntro();
     }
   };
@@ -53,7 +94,7 @@ export default function IntroFlow() {
     if (user) {
       setIsFinishing(true);
       try {
-        const { error } = await supabase.from('profiles').update({ intro_seen: true }).eq('id', user.id);
+        const { error } = await supabase.from('profiles').update({ intro_completed: true }).eq('id', user.id);
         if (error) throw error;
         await refreshProfile();
         navigate('/', { replace: true });
@@ -70,6 +111,11 @@ export default function IntroFlow() {
 
   return (
     <div className="min-h-screen bg-[#130B1C] flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden">
+      {/* Música de fundo invisível */}
+      <audio id="introMusic" ref={audioRef} preload="auto" loop className="hidden">
+        <source src="https://qiilerbewoloaijqloem.supabase.co/storage/v1/object/public/assets/intro_music.mp3" type="audio/mpeg" />
+      </audio>
+
       {/* Background stars effect */}
       <div className="absolute inset-0 z-0 opacity-30 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 

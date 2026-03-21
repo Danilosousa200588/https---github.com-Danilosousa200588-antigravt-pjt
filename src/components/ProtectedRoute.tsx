@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }
 
   if (profile) {
-    const hasSeenIntro = profile.intro_seen;
+    const hasSeenIntro = profile.intro_completed;
     const isIntroRoute = location.pathname === '/intro';
 
     if (!hasSeenIntro && !isIntroRoute) {

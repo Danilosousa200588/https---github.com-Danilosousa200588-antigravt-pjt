@@ -10,7 +10,7 @@ export type Profile = {
   updated_at: string;
   online_status: boolean;
   last_seen: string;
-  intro_seen: boolean;
+  intro_completed: boolean;
   home_image_url: string | null;
 };
 
