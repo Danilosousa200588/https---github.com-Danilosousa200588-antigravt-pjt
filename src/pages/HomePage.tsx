@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Heart, Sparkles, TrendingUp, Camera, MessageCircle, Edit2, Loader2 } from 'lucide-react';
+import { Heart, Sparkles, TrendingUp, Camera, MessageCircle, Edit2, Loader2, Gamepad2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -111,6 +111,17 @@ export default function HomePage() {
           </div>
           <span className="font-semibold text-sm">Quizzes</span>
         </Link>
+        <a 
+          href="https://poki.com" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="glass-card p-6 rounded-3xl flex flex-col items-center gap-3 hover:bg-rose-100 transition-colors"
+        >
+          <div className="w-12 h-12 rounded-full bg-rose-200 flex items-center justify-center text-rose-500">
+            <Gamepad2 size={24} />
+          </div>
+          <span className="font-semibold text-sm">Jogos</span>
+        </a>
       </section>
 
       <section className="glass-card p-6 rounded-3xl space-y-4">
