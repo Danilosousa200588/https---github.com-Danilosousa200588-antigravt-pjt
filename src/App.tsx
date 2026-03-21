@@ -24,6 +24,7 @@ import VideosPage from './pages/VideosPage';
 import QuizPage from './pages/QuizPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
+import IntroFlow from './pages/IntroFlow';
 
 function BottomNav() {
   const location = useLocation();
@@ -125,7 +126,16 @@ export default function App() {
         <Routes>
           {/* Rota pública: tela de login */}
           <Route path="/login" element={<LoginPage />} />
-          {/* Rotas protegidas: requer autenticação */}
+          
+          {/* Rotas protegidas */}
+          <Route 
+            path="/intro" 
+            element={
+              <ProtectedRoute>
+                <IntroFlow />
+              </ProtectedRoute>
+            } 
+          />
           <Route
             path="/*"
             element={
