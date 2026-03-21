@@ -142,6 +142,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return msg;
   }
 
+  if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    return (
+      <div className="min-h-screen bg-rose-50 flex items-center justify-center p-6 text-center">
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl max-w-sm space-y-6">
+          <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto text-rose-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          </div>
+          <h2 className="text-2xl font-bold text-zinc-800">Ué, faltou o Supabase!</h2>
+          <p className="text-zinc-500 text-sm leading-relaxed">
+            As chaves de conexão não foram encontradas. Se você estiver na Vercel, adicione 
+            <code className="bg-rose-50 px-1 rounded text-rose-500 mx-1">VITE_SUPABASE_URL</code> e 
+            <code className="bg-rose-50 px-1 rounded text-rose-500 mx-1">VITE_SUPABASE_ANON_KEY</code> no painel de Environment Variables!
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full py-3 bg-rose-400 text-white rounded-full font-bold shadow-lg shadow-rose-200"
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, onlineUsers, signIn, signUp, signOut, refreshProfile }}>
       {children}
