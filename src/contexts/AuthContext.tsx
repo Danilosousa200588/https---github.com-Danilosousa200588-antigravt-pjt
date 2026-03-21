@@ -11,6 +11,7 @@ export type Profile = {
   online_status: boolean;
   last_seen: string;
   intro_seen: boolean;
+  home_image_url: string | null;
 };
 
 type AuthContextType = {

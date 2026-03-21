@@ -1,8 +1,50 @@
 import { motion } from 'motion/react';
-import { Heart, Sparkles, TrendingUp, Camera, MessageCircle } from 'lucide-react';
+import { Heart, Sparkles, TrendingUp, Camera, MessageCircle, Edit2, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import { useState, useRef } from 'react';
 
 export default function HomePage() {
+  const { user, profile, refreshProfile } = useAuth();
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `home_${user.id}_${Date.now()}.${fileExt}`;
+      const filePath = `home_featured/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('gallery')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('gallery').getPublicUrl(filePath);
+      const publicUrl = data.publicUrl;
+
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({ home_image_url: publicUrl })
+        .eq('id', user.id);
+
+      if (dbError) throw dbError;
+
+      await refreshProfile();
+    } catch (err) {
+      console.error('Error uploading home image:', err);
+      alert('Erro ao carregar a imagem. Verifique se o bucket "gallery" permite uploads.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -11,11 +53,28 @@ export default function HomePage() {
       className="p-6 space-y-8"
     >
       <section className="relative rounded-3xl overflow-hidden aspect-[4/5] editorial-shadow group">
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          accept="image/*" 
+          onChange={handleImageUpload} 
+        />
+        
+        <div className="absolute top-4 right-4 z-20">
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-all border border-white/30 shadow-lg"
+          >
+            {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Edit2 size={20} />}
+          </button>
+        </div>
+
         <img 
-          src="https://picsum.photos/seed/romantic-couple/800/1000" 
-          alt="Couple" 
+          src={profile?.home_image_url || "/logo.png"} 
+          alt="Home Featured" 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute bottom-8 left-8 right-8">
