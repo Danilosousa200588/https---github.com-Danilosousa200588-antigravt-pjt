@@ -76,7 +76,7 @@ function AppHeader() {
     <header className="sticky top-0 z-40 bg-rose-50/80 backdrop-blur-md px-6 py-4 flex justify-between items-center">
       <Link to="/" className="flex items-center gap-2">
         <Heart className="text-rose-400 fill-rose-400" size={24} />
-        <h1 className="font-headline italic text-2xl font-bold text-rose-400">Amethyst Rose</h1>
+        <h1 className="font-headline italic text-2xl font-bold text-rose-400">Amethyst Rose ✨</h1>
       </Link>
       <Link to="/profile" className="w-10 h-10 rounded-full overflow-hidden border-2 border-rose-200 bg-rose-100">
         <img 
