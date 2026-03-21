@@ -37,7 +37,10 @@ function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-rose-100 px-2 py-3 z-50 rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
+    <nav 
+      translate="no" 
+      className="notranslate fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-rose-100 px-2 py-3 z-50 rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.04)]"
+    >
       <div className="flex justify-around items-center max-w-lg mx-auto">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
@@ -45,13 +48,16 @@ function BottomNav() {
             <Link
               key={item.path}
               to={item.path}
+              translate="no"
               className={cn(
-                "flex flex-col items-center gap-1 p-2 rounded-2xl transition-all duration-300",
+                "notranslate flex flex-col items-center justify-center gap-1 p-2 rounded-2xl transition-all duration-300 flex-1 min-w-0 max-w-[20%]",
                 isActive ? "text-rose-400 scale-110" : "text-zinc-400 hover:text-rose-300"
               )}
             >
-              <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-[10px] font-semibold uppercase tracking-wider">{item.label}</span>
+              <item.icon className="flex-shrink-0" size={20} strokeWidth={isActive ? 2.5 : 2} />
+              <span className="text-[10px] font-bold uppercase tracking-tighter truncate w-full text-center overflow-hidden whitespace-nowrap leading-none">
+                {item.label}
+              </span>
               {isActive && (
                 <motion.div 
                   layoutId="activeTab"
@@ -74,11 +80,11 @@ function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-rose-50/80 backdrop-blur-md px-6 py-4 flex justify-between items-center">
-      <Link to="/" className="flex items-center gap-2">
-        <Heart className="text-rose-400 fill-rose-400" size={24} />
-        <h1 className="font-headline italic text-2xl font-bold text-rose-400">Amethyst Rose ✨</h1>
+      <Link to="/" className="flex items-center gap-2 flex-1 min-w-0 mr-4">
+        <Heart className="flex-shrink-0 text-rose-400 fill-rose-400" size={24} />
+        <h1 className="font-headline italic text-2xl font-bold text-rose-400 truncate">Amethyst Rose ✨</h1>
       </Link>
-      <Link to="/profile" className="w-10 h-10 rounded-full overflow-hidden border-2 border-rose-200 bg-rose-100">
+      <Link to="/profile" className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 border-rose-200 bg-rose-100">
         <img 
           src={avatarUrl}
           alt={displayName}
