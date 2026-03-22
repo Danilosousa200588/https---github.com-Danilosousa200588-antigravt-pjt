@@ -35,9 +35,12 @@ export default function VideosPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newVideoFile, setNewVideoFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [newThumbnailFile, setNewThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     localStorage.setItem('amethyst_videos', JSON.stringify(videos));
@@ -48,6 +51,14 @@ export default function VideosPage() {
     if (file) {
       setNewVideoFile(file);
       setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewThumbnailFile(file);
+      setThumbnailPreviewUrl(URL.createObjectURL(file));
     }
   };
 
@@ -70,22 +81,41 @@ export default function VideosPage() {
       const { data } = supabase.storage.from('gallery').getPublicUrl(fileName);
       const publicUrl = data.publicUrl;
 
+      let thumbnailUrl = '';
+      if (newThumbnailFile) {
+        const thumbExt = newThumbnailFile.name.split('.').pop();
+        const thumbName = `videos/thumbnails/${user.id}_${Date.now()}.${thumbExt}`;
+        const { error: thumbUploadError } = await supabase.storage
+          .from('gallery')
+          .upload(thumbName, newThumbnailFile);
+        
+        if (!thumbUploadError) {
+          const { data: thumbData } = supabase.storage.from('gallery').getPublicUrl(thumbName);
+          thumbnailUrl = thumbData.publicUrl;
+        }
+      }
+
       const newVideo: Video = {
         id: Date.now().toString(),
         title: newTitle,
         date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
         url: publicUrl,
-        thumbnail: 'https://picsum.photos/seed/' + Date.now() + '/800/450',
+        thumbnail: thumbnailUrl,
         duration: '--:--',
       };
 
       setVideos([newVideo, ...videos]);
       setNewTitle('');
       setNewVideoFile(null);
+      setNewThumbnailFile(null);
       
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
+      }
+      if (thumbnailPreviewUrl) {
+        URL.revokeObjectURL(thumbnailPreviewUrl);
+        setThumbnailPreviewUrl(null);
       }
       setIsAdding(false);
     } catch (err) {
@@ -135,12 +165,18 @@ export default function VideosPage() {
                 className="relative aspect-video rounded-3xl overflow-hidden editorial-shadow cursor-pointer"
                 onClick={() => setSelectedVideo(video)}
               >
-                <img 
-                  src={video.thumbnail} 
-                  alt={video.title} 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
+                {video.thumbnail ? (
+                  <img 
+                    src={video.thumbnail} 
+                    alt={video.title} 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-black flex items-center justify-center transition-transform duration-700 group-hover:scale-105">
+                    <Play size={48} className="text-white/20" fill="currentColor" />
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="w-16 h-16 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white">
                     <Play size={32} fill="currentColor" />
@@ -293,9 +329,14 @@ export default function VideosPage() {
                      setIsAdding(false);
                      setNewTitle('');
                      setNewVideoFile(null);
+                     setNewThumbnailFile(null);
                      if (previewUrl) {
                        URL.revokeObjectURL(previewUrl);
                        setPreviewUrl(null);
+                     }
+                     if (thumbnailPreviewUrl) {
+                       URL.revokeObjectURL(thumbnailPreviewUrl);
+                       setThumbnailPreviewUrl(null);
                      }
                   }}
                   className="p-2 hover:bg-zinc-100 rounded-full transition-colors"
@@ -338,6 +379,35 @@ export default function VideosPage() {
                   accept="video/*" 
                   className="hidden" 
                 />
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Capa do Vídeo (Opcional)</label>
+                  <div 
+                    onClick={() => thumbnailInputRef.current?.click()}
+                    className={cn(
+                      "h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden relative",
+                      newThumbnailFile ? "border-rose-200 bg-rose-50/30" : "border-zinc-200 hover:border-rose-300 hover:bg-rose-50/30"
+                    )}
+                  >
+                    {thumbnailPreviewUrl ? (
+                      <img src={thumbnailPreviewUrl} alt="Capa" className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
+                          <Film size={20} />
+                        </div>
+                        <p className="text-[10px] font-bold text-zinc-600">Escolher Capa</p>
+                      </>
+                    )}
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={thumbnailInputRef} 
+                    onChange={handleThumbnailChange} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                </div>
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Título / Legenda</label>
