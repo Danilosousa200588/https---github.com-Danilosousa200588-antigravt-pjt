@@ -35,13 +35,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
-  async function fetchProfile(userId: string) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (data) setProfile(data as Profile);
+  async function fetchProfile(userId: string, retries = 5) {
+    for (let i = 0; i < retries; i++) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (data) {
+        setProfile(data as Profile);
+        return;
+      }
+      
+      // Delay before retrying
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
   }
 
   async function refreshProfile() {

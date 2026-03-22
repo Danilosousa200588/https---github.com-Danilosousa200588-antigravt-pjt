@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Sparkles, CheckSquare, ArrowRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +33,10 @@ export default function IntroFlow() {
   const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  const handleTypingComplete = useCallback(() => {
+    setTypingComplete(true);
+  }, []);
 
   useEffect(() => {
     const music = audioRef.current;
@@ -154,7 +158,7 @@ export default function IntroFlow() {
             </div>
             <h2 className="text-2xl font-serif text-white mb-6 font-medium">Oi meu amor ❤️</h2>
             <div className="h-40 mb-8 max-w-xs text-left">
-              <TypewriterText text="Eu fiz esse lugar pensando em você... Cada detalhe aqui tem um pedacinho do meu coração. Porque você faz minha vida mais bonita. Bem-vinda ao nosso cantinho especial." onComplete={() => setTypingComplete(true)} />
+              <TypewriterText text="Eu fiz esse lugar pensando em você... Cada detalhe aqui tem um pedacinho do meu coração. Porque você faz minha vida mais bonita. Bem-vinda ao nosso cantinho especial." onComplete={handleTypingComplete} />
             </div>
             
             <motion.button
@@ -186,7 +190,7 @@ export default function IntroFlow() {
               {step === 4 && "Você quer continuar criando memórias comigo?"}
             </h2>
             <div className="w-full space-y-4">
-              <button onClick={() => step === 4 ? showLoading(5, 'Preparando o contrato...') : setStep(step + 1)} className="w-full py-4 bg-pink-200 hover:bg-pink-300 text-pink-900 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(24bc,165,165,0.2)]">
+              <button onClick={() => step === 4 ? showLoading(5, 'Preparando o contrato...') : setStep(step + 1)} className="w-full py-4 bg-pink-200 hover:bg-pink-300 text-pink-900 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(244,165,165,0.2)]">
                 <CheckSquare size={18} /> Sim ❤️
               </button>
               <button onClick={() => step === 4 ? showLoading(5, 'Preparando o contrato...') : setStep(step + 1)} className="w-full py-4 bg-[#2B1045]/50 hover:bg-[#3d1763]/80 border border-white/10 text-pink-100 rounded-2xl font-bold transition-all flex items-center justify-center gap-2">
@@ -222,7 +226,7 @@ export default function IntroFlow() {
               <li className="flex items-start gap-3"><span className="w-2 h-2 mt-1.5 rounded-full bg-pink-400 shrink-0"/>Continuar essa linda história comigo</li>
             </ul>
             <p className="text-center font-serif text-pink-200 italic mb-8 border-t border-white/10 pt-6">"Prometo zelar por cada detalhe do nosso laço, hoje e sempre."</p>
-            <button onClick={() => showLoading(6, 'Selando o nosso amor...')} className="w-full py-4 bg-pink-200 hover:bg-pink-300 text-pink-900 rounded-[2rem] font-bold tracking-widest text-sm shadow-[0_0_30px_rgba(24bc,165,165,0.3)] transition-all">
+            <button onClick={() => showLoading(6, 'Selando o nosso amor...')} className="w-full py-4 bg-pink-200 hover:bg-pink-300 text-pink-900 rounded-[2rem] font-bold tracking-widest text-sm shadow-[0_0_30px_rgba(244,165,165,0.3)] transition-all">
               ACEITO ESSE AMOR ❤️
             </button>
           </motion.div>

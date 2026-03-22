@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Clock, Heart, Plus, Trash2, X, Upload, Video as VideoIcon, Film } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface Video {
   id: string;
@@ -20,6 +22,7 @@ const INITIAL_VIDEOS: Video[] = [
 ];
 
 export default function VideosPage() {
+  const { user } = useAuth();
   const [videos, setVideos] = useState<Video[]>(() => {
     const saved = localStorage.getItem('amethyst_videos');
     return saved ? JSON.parse(saved) : INITIAL_VIDEOS;
@@ -30,7 +33,8 @@ export default function VideosPage() {
   const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
   
   const [newTitle, setNewTitle] = useState('');
-  const [newVideoFile, setNewVideoFile] = useState<string | null>(null);
+  const [newVideoFile, setNewVideoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,32 +46,54 @@ export default function VideosPage() {
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setIsUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewVideoFile(reader.result as string);
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
+      setNewVideoFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
-  const handleAddVideo = () => {
-    if (!newVideoFile || !newTitle) return;
+  const handleAddVideo = async () => {
+    if (!newVideoFile || !newTitle || !user) return;
 
-    const newVideo: Video = {
-      id: Date.now().toString(),
-      title: newTitle,
-      date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
-      url: newVideoFile,
-      thumbnail: 'https://picsum.photos/seed/' + Date.now() + '/800/450',
-      duration: '--:--',
-    };
+    try {
+      setIsUploading(true);
+      
+      const fileExt = newVideoFile.name.split('.').pop();
+      const fileName = `videos/${user.id}_${Date.now()}.${fileExt}`;
+      
+      // Upload do vídeo pro diretório "videos" no bucket "gallery"
+      const { error: uploadError } = await supabase.storage
+        .from('gallery')
+        .upload(fileName, newVideoFile);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data } = supabase.storage.from('gallery').getPublicUrl(fileName);
+      const publicUrl = data.publicUrl;
 
-    setVideos([newVideo, ...videos]);
-    setNewTitle('');
-    setNewVideoFile(null);
-    setIsAdding(false);
+      const newVideo: Video = {
+        id: Date.now().toString(),
+        title: newTitle,
+        date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+        url: publicUrl,
+        thumbnail: 'https://picsum.photos/seed/' + Date.now() + '/800/450',
+        duration: '--:--',
+      };
+
+      setVideos([newVideo, ...videos]);
+      setNewTitle('');
+      setNewVideoFile(null);
+      
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      setIsAdding(false);
+    } catch (err) {
+      console.error('Erro ao fazer upload do vídeo:', err);
+      alert('Houve um erro ao enviar o vídeo. Tente novamente.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const confirmDelete = () => {
@@ -263,7 +289,15 @@ export default function VideosPage() {
               <div className="flex justify-between items-center">
                 <h3 className="font-headline text-2xl font-bold text-zinc-800">Novo Vídeo</h3>
                 <button 
-                  onClick={() => setIsAdding(false)}
+                  onClick={() => {
+                     setIsAdding(false);
+                     setNewTitle('');
+                     setNewVideoFile(null);
+                     if (previewUrl) {
+                       URL.revokeObjectURL(previewUrl);
+                       setPreviewUrl(null);
+                     }
+                  }}
                   className="p-2 hover:bg-zinc-100 rounded-full transition-colors"
                 >
                   <X size={20} className="text-zinc-400" />
