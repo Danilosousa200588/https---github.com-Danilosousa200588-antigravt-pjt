@@ -162,14 +162,17 @@ export default function VideosPage() {
               className="group space-y-3"
             >
               <div 
-                className="relative aspect-video rounded-3xl overflow-hidden editorial-shadow cursor-pointer"
+                className={cn(
+                  "relative rounded-3xl overflow-hidden editorial-shadow cursor-pointer",
+                  !video.thumbnail && "aspect-video"
+                )}
                 onClick={() => setSelectedVideo(video)}
               >
                 {video.thumbnail ? (
                   <img 
                     src={video.thumbnail} 
                     alt={video.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="w-full h-auto transition-transform duration-700 group-hover:scale-105"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
@@ -386,11 +389,11 @@ export default function VideosPage() {
                     onClick={() => thumbnailInputRef.current?.click()}
                     className={cn(
                       "h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden relative",
-                      newThumbnailFile ? "border-rose-200 bg-rose-50/30" : "border-zinc-200 hover:border-rose-300 hover:bg-rose-50/30"
+                      newThumbnailFile ? "border-rose-200 bg-rose-50/10" : "border-zinc-200 hover:border-rose-300 hover:bg-rose-50/30"
                     )}
                   >
                     {thumbnailPreviewUrl ? (
-                      <img src={thumbnailPreviewUrl} alt="Capa" className="w-full h-full object-cover" />
+                      <img src={thumbnailPreviewUrl} alt="Capa" className="w-full h-full object-contain backdrop-blur-sm" />
                     ) : (
                       <>
                         <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
