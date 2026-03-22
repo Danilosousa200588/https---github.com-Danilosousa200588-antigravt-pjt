@@ -37,7 +37,7 @@ export default function VideosPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [newThumbnailFile, setNewThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success'>('idle');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
@@ -66,7 +66,7 @@ export default function VideosPage() {
     if (!newVideoFile || !newTitle || !user) return;
 
     try {
-      setIsUploading(true);
+      setUploadStatus('uploading');
       
       const fileExt = newVideoFile.name.split('.').pop();
       const fileName = `videos/${user.id}_${Date.now()}.${fileExt}`;
@@ -117,12 +117,17 @@ export default function VideosPage() {
         URL.revokeObjectURL(thumbnailPreviewUrl);
         setThumbnailPreviewUrl(null);
       }
-      setIsAdding(false);
+      
+      setUploadStatus('success');
+      setTimeout(() => {
+        setIsAdding(false);
+        setUploadStatus('idle');
+      }, 2000);
+      
     } catch (err) {
       console.error('Erro ao fazer upload do vídeo:', err);
       alert('Houve um erro ao enviar o vídeo. Tente novamente.');
-    } finally {
-      setIsUploading(false);
+      setUploadStatus('idle');
     }
   };
 
@@ -356,25 +361,25 @@ export default function VideosPage() {
                     newVideoFile ? "border-rose-200 bg-rose-50/30" : "border-zinc-200 hover:border-rose-300 hover:bg-rose-50/30"
                   )}
                 >
-                  {newVideoFile ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <VideoIcon size={48} className="text-rose-400" />
-                      <p className="text-xs font-bold text-zinc-600">Vídeo selecionado!</p>
+                      {newVideoFile ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <VideoIcon size={48} className="text-rose-400" />
+                          <p className="text-xs font-bold text-zinc-600">Vídeo selecionado!</p>
+                        </div>
+                      ) : uploadStatus === 'uploading' ? (
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500" />
+                      ) : (
+                        <>
+                          <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
+                            <Upload size={24} />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-zinc-800">Escolher Vídeo</p>
+                            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Toque para selecionar</p>
+                          </div>
+                        </>
+                      )}
                     </div>
-                  ) : isUploading ? (
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500" />
-                  ) : (
-                    <>
-                      <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center text-rose-500">
-                        <Upload size={24} />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm font-bold text-zinc-800">Escolher Vídeo</p>
-                        <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Toque para selecionar</p>
-                      </div>
-                    </>
-                  )}
-                </div>
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -425,13 +430,43 @@ export default function VideosPage() {
 
                 <button 
                   onClick={handleAddVideo}
-                  disabled={!newVideoFile || !newTitle || isUploading}
+                  disabled={!newVideoFile || !newTitle || uploadStatus !== 'idle'}
                   className="w-full primary-gradient text-white font-bold py-4 rounded-2xl shadow-lg shadow-rose-200 disabled:opacity-50 disabled:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Play size={18} fill="currentColor" />
                   Guardar Vídeo
                 </button>
               </div>
+
+              <AnimatePresence>
+                {uploadStatus !== 'idle' && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-10 bg-white/80 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center space-y-4"
+                  >
+                    {uploadStatus === 'uploading' ? (
+                      <>
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-rose-100 border-t-rose-500" />
+                        <p className="text-lg font-bold font-headline text-rose-500 animate-pulse">Salvando servidor...</p>
+                        <p className="text-xs text-zinc-500 font-medium px-8 text-center">Isso pode levar alguns minutos dependendo do tamanho do vídeo.</p>
+                      </>
+                    ) : (
+                      <motion.div 
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="flex flex-col items-center gap-4"
+                      >
+                        <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center">
+                          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <p className="text-xl font-bold font-headline text-emerald-600">Carregamento Completo</p>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </div>
         )}
