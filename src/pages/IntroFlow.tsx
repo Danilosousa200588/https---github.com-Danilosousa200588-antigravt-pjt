@@ -157,7 +157,7 @@ export default function IntroFlow() {
               <Heart className="text-pink-300 fill-pink-300 w-8 h-8" />
             </div>
             <h2 className="text-2xl font-serif text-white mb-6 font-medium">Oi meu amor ❤️</h2>
-            <div className="h-40 mb-8 max-w-xs text-left">
+            <div className="min-h-[240px] sm:min-h-[160px] mb-8 max-w-xs text-left w-full flex-grow">
               <TypewriterText text="Eu fiz esse lugar pensando em você... Cada detalhe aqui tem um pedacinho do meu coração. Porque você faz minha vida mais bonita. Bem-vinda ao nosso cantinho especial." onComplete={handleTypingComplete} />
             </div>
             
