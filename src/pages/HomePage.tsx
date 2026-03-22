@@ -72,7 +72,7 @@ export default function HomePage() {
         </div>
 
         <img 
-          src={profile?.home_image_url || "/logo.png"} 
+          src={profile?.home_image_url || "/home_cover.png"} 
           alt="Home Featured" 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
