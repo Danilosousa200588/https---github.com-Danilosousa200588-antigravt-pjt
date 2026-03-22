@@ -68,11 +68,15 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex flex-col items-center space-y-3">
             <motion.div
-              animate={{ scale: [1, 1.12, 1] }}
-              transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
-              className="w-16 h-16 bg-gradient-to-br from-rose-400 to-pink-500 rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-rose-200"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+              className="w-24 h-24 relative flex items-center justify-center"
             >
-              <Heart className="text-white fill-white" size={32} />
+              <img 
+                src="/logo.png" 
+                alt="Amethyst Rose Logo" 
+                className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(244,63,94,0.3)]"
+              />
             </motion.div>
             <div className="text-center">
               <h1 className="font-headline italic text-3xl font-bold text-rose-400">Amethyst Rose</h1>
