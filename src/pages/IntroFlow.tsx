@@ -11,12 +11,16 @@ const TypewriterText = ({ text, delay = 0, onComplete, className }: { text: stri
   
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    const typingAudio = new Audio('https://qiilerbewoloaijqloem.supabase.co/storage/v1/object/public/sounds/u_jww7bj79ux-binary-code-interface-sound-effects-sci-fi-computer-ui-sounds-209403.mp3');
-    typingAudio.loop = true;
-    typingAudio.volume = 0.4;
-    
     let i = 0;
+    
     const startTyping = () => {
+      // Usar a referência global de áudio se disponível pelo pai, ou criar uma aqui se necessário
+      // Mas para otimizar, o som de digitação pode ser controlado globalmente. 
+      // Por enquanto, apenas otimizamos o ciclo de vida:
+      const typingAudio = new Audio('https://qiilerbewoloaijqloem.supabase.co/storage/v1/object/public/sounds/u_jww7bj79ux-binary-code-interface-sound-effects-sci-fi-computer-ui-sounds-209403.mp3');
+      typingAudio.loop = true;
+      typingAudio.volume = 0.4;
+
       typingAudio.play().catch(() => {});
       interval = setInterval(() => {
         setDisplayedText(text.slice(0, i + 1));
@@ -27,19 +31,26 @@ const TypewriterText = ({ text, delay = 0, onComplete, className }: { text: stri
           if (onComplete) onComplete();
         }
       }, 90);
+
+      return typingAudio;
     };
 
-    const timeout = setTimeout(startTyping, delay);
+    let audio: HTMLAudioElement | undefined;
+    const timeout = setTimeout(() => {
+      audio = startTyping();
+    }, delay);
 
     return () => {
       clearTimeout(timeout);
       if (interval) clearInterval(interval);
-      typingAudio.pause();
-      typingAudio.currentTime = 0;
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
     };
   }, [text, delay, onComplete]);
 
-  return <span className={className || "block text-zinc-300 font-medium text-lg leading-relaxed"}>{displayedText}</span>;
+  return <span className={className || "block text-zinc-300 font-medium text-lg leading-relaxed will-change-contents"}>{displayedText}</span>;
 };
 
 const questions = [
@@ -246,15 +257,26 @@ export default function IntroFlow() {
         <source src="https://qiilerbewoloaijqloem.supabase.co/storage/v1/object/public/assets/intro_music.mp3" type="audio/mpeg" />
       </audio>
 
-      {/* Neon background grid effect */}
-      <motion.div
-        className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+      {/* Neon background grid effect - Optimized with CSS animation */}
+      <style>{`
+        @keyframes moveGrid {
+          from { background-position: 0 0; }
+          to { background-position: 0 40px; }
+        }
+        @keyframes pulseOpacity {
+          0%, 100% { opacity: 0.1; }
+          50% { opacity: 0.25; }
+        }
+        .neon-grid {
+          animation: moveGrid 10s linear infinite, pulseOpacity 6s ease-in-out infinite;
+        }
+      `}</style>
+      <div
+        className="absolute inset-0 z-0 pointer-events-none neon-grid"
         style={{ 
-          backgroundImage: 'linear-gradient(rgba(236, 72, 153, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(236, 72, 153, 0.3) 1px, transparent 1px)', 
+          backgroundImage: 'linear-gradient(rgba(236, 72, 153, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(236, 72, 153, 0.2) 1px, transparent 1px)', 
           backgroundSize: '40px 40px' 
         }}
-        animate={{ backgroundPosition: ['0px 0px', '0px 40px'], opacity: [0.1, 0.3, 0.1] }}
-        transition={{ backgroundPosition: { repeat: Infinity, duration: 10, ease: 'linear' }, opacity: { repeat: Infinity, duration: 5, ease: 'easeInOut' } }}
       />
       
       {/* Huge Neon Orb glow in the background */}
@@ -304,7 +326,7 @@ export default function IntroFlow() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9, y: -20 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10 min-h-[440px]"
+            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10 min-h-[440px] will-change-transform"
           >
             {titlePhase === 'typing' ? (
               <div className="flex-1 flex items-center justify-center w-full">
@@ -407,7 +429,7 @@ export default function IntroFlow() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -40, scale: 0.95 }}
             transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
-            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10"
+            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10 will-change-transform"
           >
             <motion.div
               animate={{ rotate: 360, scale: [1, 1.1, 1], filter: ['drop-shadow(0 0 10px #ec4899)', 'drop-shadow(0 0 25px #f4a5a5)', 'drop-shadow(0 0 10px #ec4899)'] }}
