@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Heart, Sparkles, TrendingUp, Camera, MessageCircle, Edit2, Loader2, Gamepad2 } from 'lucide-react';
+import { Heart, Sparkles, TrendingUp, Camera, MessageCircle, Edit2, Loader2, Gamepad2, Bot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -122,6 +122,12 @@ export default function HomePage() {
           </div>
           <span className="font-semibold text-sm">Jogos</span>
         </a>
+        <Link to="/ai-chat" className="glass-card p-6 rounded-3xl flex flex-col items-center gap-3 hover:bg-cyan-50 transition-colors col-span-2">
+          <div className="w-12 h-12 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-500">
+            <Bot size={24} />
+          </div>
+          <span className="font-semibold text-sm">Amethyst IA</span>
+        </Link>
       </section>
 
       <section className="glass-card p-6 rounded-3xl space-y-4">

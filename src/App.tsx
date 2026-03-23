@@ -25,6 +25,7 @@ import QuizPage from './pages/QuizPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import IntroFlow from './pages/IntroFlow';
+import AIChat from './pages/AIChat';
 
 function BottomNav() {
   const location = useLocation();
@@ -133,6 +134,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <IntroFlow />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/ai-chat" 
+            element={
+              <ProtectedRoute>
+                <AIChat />
               </ProtectedRoute>
             } 
           />
