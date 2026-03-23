@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 // --- Types ---
 interface HistoryEntry {
@@ -66,8 +67,9 @@ function Cursor() {
 
 // --- Main Component ---
 export default function AIChat() {
+  const { user } = useAuth();
   const [input, setInput] = useState('');
-  const [phase, setPhase] = useState<'idle' | 'typing-response' | 'done'>('idle');
+  const [phase, setPhase] = useState<'intro-typing' | 'intro-done' | 'idle' | 'typing-response' | 'done'>('idle');
   const [isLoading, setIsLoading] = useState(false);
   const [aiText, setAiText] = useState('');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -76,10 +78,34 @@ export default function AIChat() {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleTypeComplete = useCallback(() => {
-    setPhase('done');
-  }, []);
+    setPhase((prev) => {
+      if (prev === 'intro-typing') {
+        if (user) {
+          localStorage.setItem(`amethyst_ai_intro_seen_${user.id}`, 'true');
+        }
+        return 'intro-done';
+      }
+      return 'done';
+    });
+  }, [user]);
 
   const { displayedText, isTyping, type, reset } = useTypewriter(handleTypeComplete);
+
+  // Verificação de primeira visita (Apresentação da IA)
+  useEffect(() => {
+    if (!user) return;
+    const seen = localStorage.getItem(`amethyst_ai_intro_seen_${user.id}`);
+    if (!seen) {
+      setPhase('intro-typing');
+      const introTimer = setTimeout(() => {
+        type("Olá. Eu sou a Amethyst IA. Fui criada para ajudar, aprender e acompanhar você nesta jornada. Seja bem-vindo(a).");
+      }, 600);
+      return () => clearTimeout(introTimer);
+    } else {
+      setPhase('idle');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, type]);
 
   // Áudio de digitação
   useEffect(() => {
@@ -151,7 +177,7 @@ export default function AIChat() {
     }
   }, [phase]);
 
-  const showInput = phase === 'idle' || phase === 'done';
+  const showInput = phase === 'idle' || phase === 'done' || phase === 'intro-done';
   const showResponse = displayedText.length > 0;
   const showPendingDots = phase === 'typing-response' && !displayedText;
 
