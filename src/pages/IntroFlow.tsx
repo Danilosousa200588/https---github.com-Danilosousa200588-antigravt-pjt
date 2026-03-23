@@ -6,23 +6,40 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 
-const TypewriterText = ({ text, delay = 0, onComplete }: { text: string, delay?: number, onComplete?: () => void }) => {
+const TypewriterText = ({ text, delay = 0, onComplete, className }: { text: string, delay?: number, onComplete?: () => void, className?: string }) => {
   const [displayedText, setDisplayedText] = useState('');
   
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    const typingAudio = new Audio('https://qiilerbewoloaijqloem.supabase.co/storage/v1/object/public/sounds/u_jww7bj79ux-binary-code-interface-sound-effects-sci-fi-computer-ui-sounds-209403.mp3');
+    typingAudio.loop = true;
+    typingAudio.volume = 0.4;
+    
     let i = 0;
-    const interval = setInterval(() => {
-      setDisplayedText(text.slice(0, i));
-      i++;
-      if (i > text.length) {
-        clearInterval(interval);
-        if (onComplete) onComplete();
-      }
-    }, 40);
-    return () => clearInterval(interval);
-  }, [text, onComplete]);
+    const startTyping = () => {
+      typingAudio.play().catch(() => {});
+      interval = setInterval(() => {
+        setDisplayedText(text.slice(0, i + 1));
+        i++;
+        if (i >= text.length) {
+          clearInterval(interval);
+          typingAudio.pause();
+          if (onComplete) onComplete();
+        }
+      }, 90);
+    };
 
-  return <p className="text-zinc-300 font-medium text-lg leading-relaxed">{displayedText}</p>;
+    const timeout = setTimeout(startTyping, delay);
+
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+      typingAudio.pause();
+      typingAudio.currentTime = 0;
+    };
+  }, [text, delay, onComplete]);
+
+  return <span className={className || "block text-zinc-300 font-medium text-lg leading-relaxed"}>{displayedText}</span>;
 };
 
 const questions = [
@@ -37,6 +54,8 @@ export default function IntroFlow() {
   const [typingComplete, setTypingComplete] = useState(false);
   const [loadingText, setLoadingText] = useState('');
   const [isFinishing, setIsFinishing] = useState(false);
+
+  const [titlePhase, setTitlePhase] = useState<'typing' | 'done'>('typing');
 
   // State for the reason input flow
   const [simClickedStep, setSimClickedStep] = useState<number | null>(null);
@@ -76,6 +95,28 @@ export default function IntroFlow() {
     }
   }, [simClickedStep]);
 
+  const clickAudioRef = useRef<HTMLAudioElement | null>(null);
+  const loadingAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    clickAudioRef.current = new Audio('https://qiilerbewoloaijqloem.supabase.co/storage/v1/object/public/sounds/click.mp3.mp3');
+    if (clickAudioRef.current) clickAudioRef.current.preload = 'auto';
+
+    loadingAudioRef.current = new Audio('https://qiilerbewoloaijqloem.supabase.co/storage/v1/object/public/sounds/u_jww7bj79ux-binary-code-interface-sound-effects-sci-fi-computer-ui-sounds-209403.mp3');
+    if (loadingAudioRef.current) {
+      loadingAudioRef.current.loop = true;
+      loadingAudioRef.current.volume = 0.4;
+      loadingAudioRef.current.preload = 'auto';
+    }
+  }, []);
+
+  const playClick = () => {
+    if (clickAudioRef.current) {
+      clickAudioRef.current.currentTime = 0;
+      clickAudioRef.current.play().catch(() => {});
+    }
+  };
+
   const stopMusicSmooth = () => {
     return new Promise<void>((resolve) => {
       const music = audioRef.current;
@@ -99,6 +140,7 @@ export default function IntroFlow() {
   };
 
   const handleNextStep = async () => {
+    playClick();
     if (step < 7) {
       setStep(prev => prev + 1);
     } else {
@@ -109,10 +151,20 @@ export default function IntroFlow() {
   };
 
   const showLoading = (nextStep: number, phrase: string) => {
+    playClick();
     setLoadingText(phrase);
     setTypingComplete(false);
     setStep(-1);
+
+    if (loadingAudioRef.current) {
+      loadingAudioRef.current.currentTime = 0;
+      loadingAudioRef.current.play().catch(() => {});
+    }
+
     setTimeout(() => {
+      if (loadingAudioRef.current) {
+        loadingAudioRef.current.pause();
+      }
       setStep(nextStep);
     }, 6000);
   };
@@ -138,12 +190,14 @@ export default function IntroFlow() {
 
   // Called when user clicks "Sim ❤️"
   const handleSimClick = (currentStep: number) => {
+    playClick();
     setSimClickedStep(currentStep);
     setReasonText('');
   };
 
   // Save the reason to DB and advance
   const handleReasonSubmit = async (currentStep: number) => {
+    playClick();
     setIsSavingReason(true);
     const questionObj = questions.find(q => q.step === currentStep);
 
@@ -175,6 +229,7 @@ export default function IntroFlow() {
 
   // Skip reason (user didn't want to write)
   const handleSkipReason = (currentStep: number) => {
+    playClick();
     setSimClickedStep(null);
     setReasonText('');
     if (currentStep === 5) {
@@ -249,46 +304,56 @@ export default function IntroFlow() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9, y: -20 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10"
+            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10 min-h-[440px]"
           >
-            <motion.div 
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0, boxShadow: ["0 0 10px #ec4899", "0 0 30px #ec4899", "0 0 10px #ec4899"] }}
-              transition={{ scale: { delay: 0.2, type: "spring", stiffness: 200 }, rotate: { delay: 0.2, type: "spring" }, boxShadow: { repeat: Infinity, duration: 2 } }}
-              className="w-16 h-16 bg-[#2B1045] rounded-full flex items-center justify-center mb-8"
-            >
-              <motion.div animate={{ scale: [1, 1.2, 1], filter: ['drop-shadow(0 0 8px #f4a5a5)', 'drop-shadow(0 0 16px #f4a5a5)', 'drop-shadow(0 0 8px #f4a5a5)'] }} transition={{ repeat: Infinity, duration: 2 }}>
-                <Heart className="text-pink-300 fill-pink-300 w-8 h-8" />
-              </motion.div>
-            </motion.div>
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0, textShadow: ['0 0 10px #ec4899', '0 0 20px #f4a5a5', '0 0 10px #ec4899'] }}
-              transition={{ opacity: { delay: 0.4 }, y: { delay: 0.4 }, textShadow: { repeat: Infinity, duration: 3 } }}
-              className="text-3xl font-serif text-pink-50 mb-6 font-medium tracking-wider"
-            >
-              Oi meu amor ❤️
-            </motion.h2>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="min-h-[240px] sm:min-h-[160px] mb-8 max-w-xs text-left w-full flex-grow"
-            >
-              <TypewriterText text="Eu fiz esse lugar pensando em você... Cada detalhe aqui tem um pedacinho do meu coração. Porque você faz minha vida mais bonita. Bem-vinda ao nosso cantinho especial." onComplete={handleTypingComplete} />
-            </motion.div>
-            
-            <motion.button
-              initial={{ opacity: 0, boxShadow: "0 0 0px #ec4899" }}
-              animate={{ opacity: typingComplete ? 1 : 0, boxShadow: typingComplete ? ["0 0 15px rgba(236,72,153,0.6)", "0 0 35px rgba(236,72,153,0.8)", "0 0 15px rgba(236,72,153,0.6)"] : "0 0 0px #ec4899" }}
-              transition={{ boxShadow: { repeat: Infinity, duration: 2 } }}
-              disabled={!typingComplete}
-              onClick={() => showLoading(1, 'Sinta a magia...')}
-              className="w-full sm:w-auto px-8 py-3 bg-pink-600/20 hover:bg-pink-500 text-pink-50 rounded-full font-bold tracking-widest text-sm uppercase transition-all flex items-center justify-center gap-2 border border-pink-400 hover:border-pink-300 disabled:cursor-default disabled:border-pink-500/30 disabled:bg-[#2B1045]"
-            >
-              Próximo ❤️ <ArrowRight size={16} />
-            </motion.button>
-            <p className="text-zinc-500 text-[10px] italic tracking-widest uppercase mt-12 mb-0">The Celestial Narrative - 1/2</p>
+            {titlePhase === 'typing' ? (
+              <div className="flex-1 flex items-center justify-center w-full">
+                <motion.h2 layoutId="title_amor" className="text-4xl sm:text-5xl font-serif text-pink-50 font-medium tracking-wider [text-shadow:0_0_15px_#ec4899,0_0_30px_#f4a5a5,0_0_15px_#ec4899]">
+                  <TypewriterText text="Oi meu amor ❤️" delay={800} onComplete={() => setTimeout(() => setTitlePhase('done'), 1500)} className="inline" />
+                </motion.h2>
+              </div>
+            ) : (
+              <>
+                <motion.div 
+                  initial={{ scale: 0, rotate: -180, opacity: 0 }}
+                  animate={{ scale: 1, rotate: 0, opacity: 1, boxShadow: ["0 0 10px #ec4899", "0 0 30px #ec4899", "0 0 10px #ec4899"] }}
+                  transition={{ scale: { delay: 0.4, type: "spring", stiffness: 200 }, rotate: { delay: 0.4, type: "spring" }, opacity: { delay: 0.4 }, boxShadow: { repeat: Infinity, duration: 2 } }}
+                  className="w-16 h-16 bg-[#2B1045] rounded-full flex items-center justify-center mb-8"
+                >
+                  <motion.div animate={{ scale: [1, 1.2, 1], filter: ['drop-shadow(0 0 8px #f4a5a5)', 'drop-shadow(0 0 16px #f4a5a5)', 'drop-shadow(0 0 8px #f4a5a5)'] }} transition={{ repeat: Infinity, duration: 2 }}>
+                    <Heart className="text-pink-300 fill-pink-300 w-8 h-8" />
+                  </motion.div>
+                </motion.div>
+                
+                <motion.h2 
+                  layoutId="title_amor"
+                  className="text-3xl font-serif text-pink-50 mb-6 font-medium tracking-wider [text-shadow:0_0_10px_#ec4899,0_0_20px_#f4a5a5,0_0_10px_#ec4899]"
+                >
+                  Oi meu amor ❤️
+                </motion.h2>
+                
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                  className="min-h-[240px] sm:min-h-[160px] mb-8 max-w-xs text-left w-full flex-grow"
+                >
+                  <TypewriterText text="Eu fiz esse lugar pensando em você... Cada detalhe aqui tem um pedacinho do meu coração. Porque você faz minha vida mais bonita. Bem-vinda ao nosso cantinho especial." onComplete={handleTypingComplete} delay={1000} />
+                </motion.div>
+                
+                <motion.button
+                  initial={{ opacity: 0, boxShadow: "0 0 0px #ec4899" }}
+                  animate={{ opacity: typingComplete ? 1 : 0, boxShadow: typingComplete ? ["0 0 15px rgba(236,72,153,0.6)", "0 0 35px rgba(236,72,153,0.8)", "0 0 15px rgba(236,72,153,0.6)"] : "0 0 0px #ec4899" }}
+                  transition={{ boxShadow: { repeat: Infinity, duration: 2 } }}
+                  disabled={!typingComplete}
+                  onClick={() => showLoading(1, 'Sinta a magia...')}
+                  className="w-full sm:w-auto px-8 py-3 bg-pink-600/20 hover:bg-pink-500 text-pink-50 rounded-full font-bold tracking-widest text-sm uppercase transition-all flex items-center justify-center gap-2 border border-pink-400 hover:border-pink-300 disabled:cursor-default disabled:border-pink-500/30 disabled:bg-[#2B1045]"
+                >
+                  Próximo ❤️ <ArrowRight size={16} />
+                </motion.button>
+                <p className="text-zinc-500 text-[10px] italic tracking-widest uppercase mt-12 mb-0">The Celestial Narrative - 1/2</p>
+              </>
+            )}
           </motion.div>
         )}
 
