@@ -84,7 +84,7 @@ export default function AIChat() {
   // Áudio de digitação
   useEffect(() => {
     if (isTyping && audioRef.current) {
-      audioRef.current.volume = 0.4; // Volume agradável
+      audioRef.current.volume = 0.15; // Volume mais baixo e sutil
       audioRef.current.play().catch(console.warn);
     } else if (!isTyping && audioRef.current) {
       audioRef.current.pause();
