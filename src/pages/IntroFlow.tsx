@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Sparkles, CheckSquare, ArrowRight, Loader2 } from 'lucide-react';
+import { Heart, Sparkles, CheckSquare, ArrowRight, Loader2, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -25,14 +25,29 @@ const TypewriterText = ({ text, delay = 0, onComplete }: { text: string, delay?:
   return <p className="text-zinc-300 font-medium text-lg leading-relaxed">{displayedText}</p>;
 };
 
+const questions = [
+  { step: 2, text: 'Você gosta de passar tempo comigo? 😊' },
+  { step: 3, text: 'Eu consigo te fazer sorrir?' },
+  { step: 4, text: 'Você se sente feliz quando estamos juntos?' },
+  { step: 5, text: 'Você quer continuar criando memórias comigo?' },
+];
+
 export default function IntroFlow() {
   const [step, setStep] = useState(0);
   const [typingComplete, setTypingComplete] = useState(false);
   const [loadingText, setLoadingText] = useState('');
   const [isFinishing, setIsFinishing] = useState(false);
+
+  // State for the reason input flow
+  const [simClickedStep, setSimClickedStep] = useState<number | null>(null);
+  const [reasonText, setReasonText] = useState('');
+  const [isSavingReason, setIsSavingReason] = useState(false);
+  const [savedReasons, setSavedReasons] = useState<Record<number, string>>({});
+
   const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleTypingComplete = useCallback(() => {
     setTypingComplete(true);
@@ -53,6 +68,13 @@ export default function IntroFlow() {
       });
     }
   }, []);
+
+  // Focus textarea when reason input appears
+  useEffect(() => {
+    if (simClickedStep !== null && textareaRef.current) {
+      setTimeout(() => textareaRef.current?.focus(), 300);
+    }
+  }, [simClickedStep]);
 
   const stopMusicSmooth = () => {
     return new Promise<void>((resolve) => {
@@ -77,7 +99,7 @@ export default function IntroFlow() {
   };
 
   const handleNextStep = async () => {
-    if (step < 6) {
+    if (step < 7) {
       setStep(prev => prev + 1);
     } else {
       setIsFinishing(true);
@@ -88,10 +110,11 @@ export default function IntroFlow() {
 
   const showLoading = (nextStep: number, phrase: string) => {
     setLoadingText(phrase);
+    setTypingComplete(false);
     setStep(-1);
     setTimeout(() => {
       setStep(nextStep);
-    }, 2000);
+    }, 6000);
   };
 
   const finishIntro = async () => {
@@ -113,6 +136,54 @@ export default function IntroFlow() {
     }
   };
 
+  // Called when user clicks "Sim ❤️"
+  const handleSimClick = (currentStep: number) => {
+    setSimClickedStep(currentStep);
+    setReasonText('');
+  };
+
+  // Save the reason to DB and advance
+  const handleReasonSubmit = async (currentStep: number) => {
+    setIsSavingReason(true);
+    const questionObj = questions.find(q => q.step === currentStep);
+
+    try {
+      if (user && questionObj) {
+        await supabase.from('intro_answers').insert({
+          user_id: user.id,
+          question_step: currentStep,
+          question_text: questionObj.text,
+          answer_reason: reasonText.trim() || null,
+        });
+      }
+    } catch (err) {
+      console.error('Erro ao salvar resposta:', err);
+    } finally {
+      setSavedReasons(prev => ({ ...prev, [currentStep]: reasonText }));
+      setSimClickedStep(null);
+      setReasonText('');
+      setIsSavingReason(false);
+
+      // Advance to next step
+      if (currentStep === 5) {
+        showLoading(6, 'Preparando o contrato...');
+      } else {
+        setStep(currentStep + 1);
+      }
+    }
+  };
+
+  // Skip reason (user didn't want to write)
+  const handleSkipReason = (currentStep: number) => {
+    setSimClickedStep(null);
+    setReasonText('');
+    if (currentStep === 5) {
+      showLoading(6, 'Preparando o contrato...');
+    } else {
+      setStep(currentStep + 1);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#130B1C] flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden">
       {/* Música de fundo invisível */}
@@ -120,8 +191,24 @@ export default function IntroFlow() {
         <source src="https://qiilerbewoloaijqloem.supabase.co/storage/v1/object/public/assets/intro_music.mp3" type="audio/mpeg" />
       </audio>
 
-      {/* Background stars effect */}
-      <div className="absolute inset-0 z-0 opacity-30 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at center, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+      {/* Neon background grid effect */}
+      <motion.div
+        className="absolute inset-0 z-0 opacity-20 pointer-events-none"
+        style={{ 
+          backgroundImage: 'linear-gradient(rgba(236, 72, 153, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(236, 72, 153, 0.3) 1px, transparent 1px)', 
+          backgroundSize: '40px 40px' 
+        }}
+        animate={{ backgroundPosition: ['0px 0px', '0px 40px'], opacity: [0.1, 0.3, 0.1] }}
+        transition={{ backgroundPosition: { repeat: Infinity, duration: 10, ease: 'linear' }, opacity: { repeat: Infinity, duration: 5, ease: 'easeInOut' } }}
+      />
+      
+      {/* Huge Neon Orb glow in the background */}
+      <motion.div
+        className="absolute inset-0 z-0 pointer-events-none mix-blend-screen"
+        animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
+        transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut' }}
+        style={{ background: 'radial-gradient(circle at 50% 50%, rgba(236,72,153,0.25), transparent 60%)' }}
+      />
 
       <AnimatePresence mode="wait">
         {step === -1 && (
@@ -132,11 +219,21 @@ export default function IntroFlow() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center z-10 text-center"
           >
-            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
-              <Heart className="text-pink-300 fill-pink-300 w-12 h-12 mb-6 shadow-pink-500/50 drop-shadow-2xl" />
+            <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0], filter: ['drop-shadow(0 0 15px #ec4899)', 'drop-shadow(0 0 35px #f4a5a5)', 'drop-shadow(0 0 15px #ec4899)'] }} transition={{ repeat: Infinity, duration: 1.5 }}>
+              <Heart className="text-pink-400 fill-pink-400 w-12 h-12 mb-6" />
             </motion.div>
-            <p className="text-zinc-400 text-sm tracking-widest uppercase font-semibold">The Celestial Narrative © 2024</p>
-            <p className="text-zinc-200 text-lg mt-2 font-serif">{loadingText}</p>
+            <motion.p 
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+              className="text-zinc-400 text-sm tracking-widest uppercase font-semibold"
+            >
+              The Celestial Narrative © 2024
+            </motion.p>
+            <motion.p 
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+              className="text-zinc-200 text-lg mt-2 font-serif"
+            >
+              {loadingText}
+            </motion.p>
             <div className="flex gap-2 mt-4">
               <span className="w-1.5 h-1.5 bg-pink-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
               <span className="w-1.5 h-1.5 bg-pink-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -148,57 +245,211 @@ export default function IntroFlow() {
         {step === 0 && (
           <motion.div
             key="step0"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-md bg-white/5 backdrop-blur-md rounded-3xl p-8 sm:p-12 shadow-2xl border border-white/10 flex flex-col items-center text-center z-10"
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10"
           >
-            <div className="w-16 h-16 bg-[#2B1045] rounded-full flex items-center justify-center mb-8 shadow-inner shadow-pink-500/20">
-              <Heart className="text-pink-300 fill-pink-300 w-8 h-8" />
-            </div>
-            <h2 className="text-2xl font-serif text-white mb-6 font-medium">Oi meu amor ❤️</h2>
-            <div className="min-h-[240px] sm:min-h-[160px] mb-8 max-w-xs text-left w-full flex-grow">
+            <motion.div 
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0, boxShadow: ["0 0 10px #ec4899", "0 0 30px #ec4899", "0 0 10px #ec4899"] }}
+              transition={{ scale: { delay: 0.2, type: "spring", stiffness: 200 }, rotate: { delay: 0.2, type: "spring" }, boxShadow: { repeat: Infinity, duration: 2 } }}
+              className="w-16 h-16 bg-[#2B1045] rounded-full flex items-center justify-center mb-8"
+            >
+              <motion.div animate={{ scale: [1, 1.2, 1], filter: ['drop-shadow(0 0 8px #f4a5a5)', 'drop-shadow(0 0 16px #f4a5a5)', 'drop-shadow(0 0 8px #f4a5a5)'] }} transition={{ repeat: Infinity, duration: 2 }}>
+                <Heart className="text-pink-300 fill-pink-300 w-8 h-8" />
+              </motion.div>
+            </motion.div>
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0, textShadow: ['0 0 10px #ec4899', '0 0 20px #f4a5a5', '0 0 10px #ec4899'] }}
+              transition={{ opacity: { delay: 0.4 }, y: { delay: 0.4 }, textShadow: { repeat: Infinity, duration: 3 } }}
+              className="text-3xl font-serif text-pink-50 mb-6 font-medium tracking-wider"
+            >
+              Oi meu amor ❤️
+            </motion.h2>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="min-h-[240px] sm:min-h-[160px] mb-8 max-w-xs text-left w-full flex-grow"
+            >
               <TypewriterText text="Eu fiz esse lugar pensando em você... Cada detalhe aqui tem um pedacinho do meu coração. Porque você faz minha vida mais bonita. Bem-vinda ao nosso cantinho especial." onComplete={handleTypingComplete} />
-            </div>
+            </motion.div>
             
             <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: typingComplete ? 1 : 0 }}
+              initial={{ opacity: 0, boxShadow: "0 0 0px #ec4899" }}
+              animate={{ opacity: typingComplete ? 1 : 0, boxShadow: typingComplete ? ["0 0 15px rgba(236,72,153,0.6)", "0 0 35px rgba(236,72,153,0.8)", "0 0 15px rgba(236,72,153,0.6)"] : "0 0 0px #ec4899" }}
+              transition={{ boxShadow: { repeat: Infinity, duration: 2 } }}
               disabled={!typingComplete}
               onClick={() => showLoading(1, 'Sinta a magia...')}
-              className="w-full sm:w-auto px-8 py-3 bg-[#2B1045] hover:bg-[#3d1763] text-pink-100 rounded-full font-bold tracking-widest text-sm uppercase transition-all flex items-center justify-center gap-2 border border-pink-500/30 hover:border-pink-400 hover:shadow-[0_0_20px_rgba(236,72,153,0.3)] disabled:cursor-default"
+              className="w-full sm:w-auto px-8 py-3 bg-pink-600/20 hover:bg-pink-500 text-pink-50 rounded-full font-bold tracking-widest text-sm uppercase transition-all flex items-center justify-center gap-2 border border-pink-400 hover:border-pink-300 disabled:cursor-default disabled:border-pink-500/30 disabled:bg-[#2B1045]"
             >
               Próximo ❤️ <ArrowRight size={16} />
             </motion.button>
-            <p className="text-zinc-500 text-[10px] italic tracking-widest uppercase mt-12 mb-0">The Celestial Narrative</p>
+            <p className="text-zinc-500 text-[10px] italic tracking-widest uppercase mt-12 mb-0">The Celestial Narrative - 1/2</p>
           </motion.div>
         )}
 
-        {[1, 2, 3, 4].includes(step) && (
+        {step === 1 && (
+          <motion.div
+            key="step1"
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10"
+          >
+            <motion.div 
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0, boxShadow: ["0 0 10px #ec4899", "0 0 30px #ec4899", "0 0 10px #ec4899"] }}
+              transition={{ scale: { delay: 0.2, type: "spring", stiffness: 200 }, rotate: { delay: 0.2, type: "spring" }, boxShadow: { repeat: Infinity, duration: 2 } }}
+              className="w-16 h-16 bg-[#2B1045] rounded-full flex items-center justify-center mb-8"
+            >
+              <motion.div animate={{ scale: [1, 1.2, 1], filter: ['drop-shadow(0 0 8px #f4a5a5)', 'drop-shadow(0 0 16px #f4a5a5)', 'drop-shadow(0 0 8px #f4a5a5)'] }} transition={{ repeat: Infinity, duration: 2 }}>
+                <Heart className="text-pink-300 fill-pink-300 w-8 h-8" />
+              </motion.div>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="min-h-[160px] mb-8 max-w-xs text-center w-full flex-grow flex items-center justify-center font-serif"
+            >
+              <TypewriterText text="Te amo mais do que consigo explicar ❤️" onComplete={handleTypingComplete} delay={300} />
+            </motion.div>
+            
+            <motion.button
+              initial={{ opacity: 0, boxShadow: "0 0 0px #ec4899" }}
+              animate={{ opacity: typingComplete ? 1 : 0, boxShadow: typingComplete ? ["0 0 15px rgba(236,72,153,0.6)", "0 0 35px rgba(236,72,153,0.8)", "0 0 15px rgba(236,72,153,0.6)"] : "0 0 0px #ec4899" }}
+              transition={{ boxShadow: { repeat: Infinity, duration: 2 } }}
+              disabled={!typingComplete}
+              onClick={() => showLoading(2, 'Preparando as perguntas...')}
+              className="w-full sm:w-auto px-8 py-3 bg-pink-600/20 hover:bg-pink-500 text-pink-50 rounded-full font-bold tracking-widest text-sm uppercase transition-all flex items-center justify-center gap-2 border border-pink-400 hover:border-pink-300 disabled:cursor-default disabled:border-pink-500/30 disabled:bg-[#2B1045]"
+            >
+              Próximo ❤️ <ArrowRight size={16} />
+            </motion.button>
+            <p className="text-zinc-500 text-[10px] italic tracking-widest uppercase mt-12 mb-0">The Celestial Narrative - 2/2</p>
+          </motion.div>
+        )}
+
+        {[2, 3, 4, 5].includes(step) && (
           <motion.div
             key={`question${step}`}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="w-full max-w-md bg-white/5 backdrop-blur-md rounded-3xl p-8 sm:p-12 shadow-2xl border border-white/10 flex flex-col items-center text-center z-10"
+            initial={{ opacity: 0, x: 40, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -40, scale: 0.95 }}
+            transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
+            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10"
           >
-            <Sparkles className="text-pink-300 w-10 h-10 mb-8" />
-            <h2 className="text-2xl font-serif text-white mb-10 leading-snug">
-              {step === 1 && "Você gosta de passar tempo comigo? 😊"}
-              {step === 2 && "Eu consigo te fazer sorrir?"}
-              {step === 3 && "Você se sente feliz quando estamos juntos?"}
-              {step === 4 && "Você quer continuar criando memórias comigo?"}
-            </h2>
-            <div className="w-full space-y-4">
-              <button onClick={() => step === 4 ? showLoading(5, 'Preparando o contrato...') : setStep(step + 1)} className="w-full py-4 bg-pink-200 hover:bg-pink-300 text-pink-900 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(244,165,165,0.2)]">
+            <motion.div
+              animate={{ rotate: 360, scale: [1, 1.1, 1], filter: ['drop-shadow(0 0 10px #ec4899)', 'drop-shadow(0 0 25px #f4a5a5)', 'drop-shadow(0 0 10px #ec4899)'] }}
+              transition={{ rotate: { repeat: Infinity, duration: 8, ease: "linear" }, scale: { repeat: Infinity, duration: 2 }, filter: { repeat: Infinity, duration: 2 } }}
+            >
+              <Sparkles className="text-pink-300 w-10 h-10 mb-8" />
+            </motion.div>
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0, textShadow: ['0 0 10px #ec4899', '0 0 20px #f4a5a5', '0 0 10px #ec4899'] }}
+              transition={{ opacity: { delay: 0.3 }, y: { delay: 0.3 }, textShadow: { repeat: Infinity, duration: 2.5 } }}
+              className="text-2xl font-serif text-pink-50 mb-10 leading-snug tracking-wide"
+            >
+              {step === 2 && "Você gosta de passar tempo comigo? 😊"}
+              {step === 3 && "Eu consigo te fazer sorrir?"}
+              {step === 4 && "Você se sente feliz quando estamos juntos?"}
+              {step === 5 && "Você quer continuar criando memórias comigo?"}
+            </motion.h2>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="w-full space-y-4"
+            >
+              {/* Botão SIM */}
+              <motion.button
+                onClick={() => handleSimClick(step)}
+                animate={{ 
+                  boxShadow: simClickedStep === step 
+                    ? "0 0 30px #f4a5a5" 
+                    : ["0 0 15px rgba(236,72,153,0.5)", "0 0 25px rgba(236,72,153,0.8)", "0 0 15px rgba(236,72,153,0.5)"] 
+                }}
+                transition={{ boxShadow: { repeat: Infinity, duration: 1.5 } }}
+                className={cn(
+                  "w-full py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 border",
+                  simClickedStep === step
+                    ? "bg-pink-400 text-white border-pink-300 scale-95"
+                    : "bg-pink-500/20 hover:bg-pink-500 hover:text-white text-pink-100 border-pink-500"
+                )}
+              >
                 <CheckSquare size={18} /> Sim ❤️
-              </button>
-              <button onClick={() => step === 4 ? showLoading(5, 'Preparando o contrato...') : setStep(step + 1)} className="w-full py-4 bg-[#2B1045]/50 hover:bg-[#3d1763]/80 border border-white/10 text-pink-100 rounded-2xl font-bold transition-all flex items-center justify-center gap-2">
-                <Sparkles size={18} className="text-yellow-400" /> Claro que sim 😄
-              </button>
-            </div>
+              </motion.button>
+
+              {/* Área de razão — aparece quando clicou em Sim */}
+              <AnimatePresence>
+                {simClickedStep === step ? (
+                  <motion.div
+                    key="reason-input"
+                    initial={{ opacity: 0, height: 0, y: -10 }}
+                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="bg-[#1e0d30]/70 border border-pink-500/30 rounded-2xl p-4 flex flex-col gap-3">
+                      <p className="text-pink-200 text-sm font-medium text-left">
+                        💬 Me conta por que... ✨
+                      </p>
+                      <textarea
+                        ref={textareaRef}
+                        value={reasonText}
+                        onChange={e => setReasonText(e.target.value)}
+                        placeholder="Escreva aqui o que sentir no coração 💕"
+                        rows={3}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-zinc-200 text-sm placeholder-zinc-600 resize-none focus:outline-none focus:border-pink-400/50 transition-colors"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSkipReason(step)}
+                          className="flex-1 py-2.5 rounded-xl text-zinc-400 text-sm font-medium border border-white/10 hover:border-white/20 hover:text-zinc-300 transition-all"
+                        >
+                          Pular
+                        </button>
+                        <button
+                          onClick={() => handleReasonSubmit(step)}
+                          disabled={isSavingReason}
+                          className="flex-1 py-2.5 rounded-xl bg-pink-400/80 hover:bg-pink-400 text-white text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          {isSavingReason ? (
+                            <Loader2 size={15} className="animate-spin" />
+                          ) : (
+                            <><Send size={14} /> Enviar</>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  /* Botão "Claro que sim" só aparece se Sim não foi clicado */
+                  <motion.button
+                    key="claro-btn"
+                    initial={{ opacity: 0, boxShadow: "0 0 0px #ec4899" }}
+                    animate={{ opacity: 1, boxShadow: ["0 0 10px rgba(236,72,153,0.4)", "0 0 20px rgba(236,72,153,0.6)", "0 0 10px rgba(236,72,153,0.4)"] }}
+                    transition={{ boxShadow: { repeat: Infinity, duration: 2.2 } }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => handleSimClick(step)}
+                    className="w-full py-4 bg-purple-900/40 hover:bg-pink-500/40 border border-pink-500/50 text-pink-100 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={18} className="text-yellow-400 drop-shadow-[0_0_5px_#fde047]" /> Claro que sim 😄
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
             <div className="flex gap-2 mt-8 opacity-40">
-              {[1, 2, 3, 4].map((i) => (
+              {[2, 3, 4, 5].map((i) => (
                  <div key={i} className={cn("h-1.5 rounded-full", step === i ? "w-6 bg-pink-300" : "w-1.5 bg-zinc-500")} />
               ))}
             </div>
@@ -206,59 +457,129 @@ export default function IntroFlow() {
           </motion.div>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <motion.div
             key="contract"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="w-full max-w-md bg-white/5 backdrop-blur-md rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/10 flex flex-col z-10"
+            initial={{ opacity: 0, y: 40, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -40, scale: 0.9 }}
+            transition={{ duration: 0.7, type: "spring", bounce: 0.3 }}
+            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-6 sm:p-10 border border-pink-500/50 shadow-[0_0_40px_rgba(236,72,153,0.4),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col z-10 relative overflow-hidden"
           >
-            <div className="flex flex-col items-center mb-8">
-              <Heart className="text-pink-300 fill-pink-300 w-12 h-12 mb-4 drop-shadow-lg" />
-              <h2 className="text-xl font-serif text-pink-200">❤️ Termo Oficial de Amor</h2>
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-br from-pink-500/20 via-transparent to-purple-500/20"
+              animate={{ opacity: [0.4, 0.8, 0.4] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            />
+            <div className="flex flex-col items-center mb-8 relative z-10">
+              <motion.div animate={{ scale: [1, 1.2, 1], filter: ['drop-shadow(0 0 15px #f4a5a5)', 'drop-shadow(0 0 30px #ec4899)', 'drop-shadow(0 0 15px #f4a5a5)'] }} transition={{ repeat: Infinity, duration: 1.5 }}>
+                <Heart className="text-pink-300 fill-pink-300 w-12 h-12 mb-4" />
+              </motion.div>
+              <motion.h2 
+                initial={{ opacity: 0, y: -10 }} 
+                animate={{ opacity: 1, y: 0, textShadow: ['0 0 10px #ec4899', '0 0 25px #f4a5a5', '0 0 10px #ec4899'] }} 
+                transition={{ opacity: { delay: 0.3 }, y: { delay: 0.3 }, textShadow: { repeat: Infinity, duration: 2.5 } }} 
+                className="text-2xl font-serif text-pink-50 tracking-wide"
+              >
+                ❤️ Termo Oficial de Amor
+              </motion.h2>
             </div>
-            <ul className="space-y-6 text-zinc-300 text-sm font-medium mb-10 text-left">
-              <li className="flex items-start gap-3"><span className="w-2 h-2 mt-1.5 rounded-full bg-pink-400 shrink-0"/>Receber carinho ilimitado</li>
-              <li className="flex items-start gap-3"><span className="w-2 h-2 mt-1.5 rounded-full bg-pink-400 shrink-0"/>Compartilhar risadas diariamente</li>
-              <li className="flex items-start gap-3"><span className="w-2 h-2 mt-1.5 rounded-full bg-pink-400 shrink-0"/>Criar memórias especiais juntos</li>
-              <li className="flex items-start gap-3"><span className="w-2 h-2 mt-1.5 rounded-full bg-pink-400 shrink-0"/>Ser minha parceira nas aventuras da vida</li>
-              <li className="flex items-start gap-3"><span className="w-2 h-2 mt-1.5 rounded-full bg-pink-400 shrink-0"/>Continuar essa linda história comigo</li>
+            <ul className="space-y-6 text-zinc-300 text-sm font-medium mb-10 text-left relative z-10">
+              {[
+                "Receber carinho ilimitado",
+                "Compartilhar risadas diariamente",
+                "Criar memórias especiais juntos",
+                "Ser minha parceira nas aventuras da vida",
+                "Continuar essa linda história comigo"
+              ].map((text, idx) => (
+                <motion.li 
+                  key={idx}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + idx * 0.2 }}
+                  className="flex items-start gap-3"
+                >
+                  <motion.span 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5 + idx * 0.2 + 0.2, type: "spring" }}
+                    className="w-2 h-2 mt-1.5 rounded-full bg-pink-400 shrink-0 shadow-[0_0_8px_rgba(244,114,182,0.8)]"
+                  />
+                  {text}
+                </motion.li>
+              ))}
             </ul>
-            <p className="text-center font-serif text-pink-200 italic mb-8 border-t border-white/10 pt-6">"Prometo zelar por cada detalhe do nosso laço, hoje e sempre."</p>
-            <button onClick={() => showLoading(6, 'Selando o nosso amor...')} className="w-full py-4 bg-pink-200 hover:bg-pink-300 text-pink-900 rounded-[2rem] font-bold tracking-widest text-sm shadow-[0_0_30px_rgba(244,165,165,0.3)] transition-all">
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.8 }}
+              className="text-center font-serif text-pink-200 italic mb-8 border-t border-white/10 pt-6 relative z-10"
+            >
+              "Prometo zelar por cada detalhe do nosso laço, hoje e sempre."
+            </motion.p>
+            <motion.button 
+              initial={{ opacity: 0, y: 20, boxShadow: "0 0 0px #ec4899" }}
+              animate={{ opacity: 1, y: 0, boxShadow: ["0 0 20px #ec4899", "0 0 40px #f4a5a5", "0 0 20px #ec4899"] }}
+              transition={{ opacity: { delay: 2.2 }, y: { delay: 2.2 }, boxShadow: { repeat: Infinity, duration: 2 } }}
+              onClick={() => showLoading(7, 'Selando o nosso amor...')} 
+              className="w-full py-4 bg-pink-500 border border-pink-300 text-white rounded-[2rem] font-bold tracking-widest text-sm transition-all relative z-10 hover:scale-105 hover:bg-pink-400"
+            >
               ACEITO ESSE AMOR ❤️
-            </button>
+            </motion.button>
           </motion.div>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <motion.div
             key="final"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, scale: 0.8, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
             className="flex flex-col items-center justify-center text-center z-10 w-full max-w-md px-6"
           >
-            <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 2 }}>
-              <Heart className="text-pink-400 fill-pink-400 w-24 h-24 mb-6 filter drop-shadow-[0_0_20px_rgba(236,72,153,0.8)]" />
+            <motion.div animate={{ scale: [1, 1.3, 1], rotate: [0, 5, -5, 0], filter: ['drop-shadow(0 0 20px #ec4899)', 'drop-shadow(0 0 50px #f4a5a5)', 'drop-shadow(0 0 20px #ec4899)'] }} transition={{ repeat: Infinity, duration: 2 }}>
+              <Heart className="text-pink-400 fill-pink-400 w-24 h-24 mb-6" />
             </motion.div>
-            <h1 className="text-3xl font-serif text-white mb-4">Agora é oficial...</h1>
-            <p className="text-zinc-300 text-lg mb-12">Você faz parte do meu mundo ❤️</p>
-            <button 
-              onClick={handleNextStep} 
-              disabled={isFinishing}
-              className="w-full max-w-[280px] py-4 bg-gradient-to-r from-pink-500 to-rose-400 text-white rounded-full font-bold shadow-[0_0_40px_rgba(236,72,153,0.4)] hover:shadow-[0_0_60px_rgba(236,72,153,0.6)] transition-all flex items-center justify-center gap-2 mx-auto disabled:opacity-50"
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0, textShadow: ['0 0 15px #ec4899', '0 0 30px #f4a5a5', '0 0 15px #ec4899'] }}
+              transition={{ opacity: { delay: 0.4 }, y: { delay: 0.4 }, textShadow: { repeat: Infinity, duration: 2.5 } }}
+              className="text-4xl font-serif text-pink-50 mb-4 tracking-widest uppercase font-bold"
             >
-              {isFinishing ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} /> Entrando...
-                </>
-              ) : (
-                <>
-                  <ArrowRight size={18} /> Entrar no aplicativo ❤️
-                </>
-              )}
-            </button>
+              Agora é oficial...
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, textShadow: ['0 0 5px #ec4899', '0 0 15px #ec4899', '0 0 5px #ec4899'] }}
+              transition={{ opacity: { delay: 0.8 }, textShadow: { repeat: Infinity, duration: 3 } }}
+              className="text-pink-200 text-xl font-medium mb-12"
+            >
+              Você faz parte do meu mundo ❤️
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2 }}
+              className="w-full"
+            >
+              <motion.button 
+                animate={{ boxShadow: ["0 0 20px #ec4899", "0 0 50px #ec4899", "0 0 20px #ec4899"] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                onClick={handleNextStep} 
+                disabled={isFinishing}
+                className="w-full max-w-[280px] py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-full font-bold border-2 border-pink-400 hover:scale-105 transition-all flex items-center justify-center gap-2 mx-auto disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isFinishing ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} /> Entrando...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight size={18} /> Entrar no aplicativo ❤️
+                  </>
+                )}
+              </motion.button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
