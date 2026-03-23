@@ -257,7 +257,7 @@ export default function IntroFlow() {
         <source src="https://qiilerbewoloaijqloem.supabase.co/storage/v1/object/public/assets/intro_music.mp3" type="audio/mpeg" />
       </audio>
 
-      {/* Neon background grid effect - Optimized with CSS animation */}
+      {/* Neon background grid and orb effects - Optimized with CSS animation for mobile/desktop */}
       <style>{`
         @keyframes moveGrid {
           from { background-position: 0 0; }
@@ -267,8 +267,36 @@ export default function IntroFlow() {
           0%, 100% { opacity: 0.1; }
           50% { opacity: 0.25; }
         }
+        @keyframes pulseOrb {
+          0%, 100% { transform: scale(1); opacity: 0.3; }
+          50% { transform: scale(1.1); opacity: 0.5; }
+        }
         .neon-grid {
           animation: moveGrid 10s linear infinite, pulseOpacity 6s ease-in-out infinite;
+        }
+        .neon-orb {
+          animation: pulseOrb 8s ease-in-out infinite;
+          background: radial-gradient(circle at 50% 50%, rgba(236,72,153,0.25), transparent 60%);
+        }
+        .neon-card {
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+        /* Mobile Specific Optimizations */
+        @media (max-width: 640px) {
+          .neon-card {
+             backdrop-filter: none; /* Disables heavy backdrop-blur on mobile */
+             -webkit-backdrop-filter: none;
+             background-color: rgba(30, 13, 48, 0.95); /* More solid background for readability */
+             box-shadow: 0 0 15px rgba(236, 72, 153, 0.2); /* Lighter shadow */
+          }
+          .neon-text-main {
+             text-shadow: 0 0 8px #ec4899 !important; /* Lighter text-shadow */
+          }
+          .neon-orb {
+             animation: none; /* Disable background pulse on mobile */
+             opacity: 0.2;
+          }
         }
       `}</style>
       <div
@@ -279,13 +307,8 @@ export default function IntroFlow() {
         }}
       />
       
-      {/* Huge Neon Orb glow in the background */}
-      <motion.div
-        className="absolute inset-0 z-0 pointer-events-none mix-blend-screen"
-        animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
-        transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut' }}
-        style={{ background: 'radial-gradient(circle at 50% 50%, rgba(236,72,153,0.25), transparent 60%)' }}
-      />
+      {/* Huge Neon Orb glow in the background - Now in CSS */}
+      <div className="absolute inset-0 z-0 pointer-events-none mix-blend-screen neon-orb" />
 
       <AnimatePresence mode="wait">
         {step === -1 && (
@@ -326,11 +349,11 @@ export default function IntroFlow() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9, y: -20 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10 min-h-[440px] will-change-transform"
+            className="w-full max-w-md bg-purple-950/20 rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10 min-h-[440px] will-change-transform neon-card"
           >
             {titlePhase === 'typing' ? (
               <div className="flex-1 flex items-center justify-center w-full">
-                <motion.h2 layoutId="title_amor" className="text-4xl sm:text-5xl font-serif text-pink-50 font-medium tracking-wider [text-shadow:0_0_15px_#ec4899,0_0_30px_#f4a5a5,0_0_15px_#ec4899]">
+                <motion.h2 layoutId="title_amor" className="text-4xl sm:text-5xl font-serif text-pink-50 font-medium tracking-wider neon-text-main [text-shadow:0_0_15px_#ec4899,0_0_30px_#f4a5a5,0_0_15px_#ec4899]">
                   <TypewriterText text="Oi meu amor ❤️" delay={800} onComplete={() => setTimeout(() => setTitlePhase('done'), 1500)} className="inline" />
                 </motion.h2>
               </div>
@@ -349,7 +372,7 @@ export default function IntroFlow() {
                 
                 <motion.h2 
                   layoutId="title_amor"
-                  className="text-3xl font-serif text-pink-50 mb-6 font-medium tracking-wider [text-shadow:0_0_10px_#ec4899,0_0_20px_#f4a5a5,0_0_10px_#ec4899]"
+                  className="text-3xl font-serif text-pink-50 mb-6 font-medium tracking-wider neon-text-main [text-shadow:0_0_10px_#ec4899,0_0_20px_#f4a5a5,0_0_10px_#ec4899]"
                 >
                   Oi meu amor ❤️
                 </motion.h2>
@@ -429,7 +452,7 @@ export default function IntroFlow() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -40, scale: 0.95 }}
             transition={{ duration: 0.5, type: "spring", bounce: 0.2 }}
-            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10 will-change-transform"
+            className="w-full max-w-md bg-purple-950/20 rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10 will-change-transform neon-card"
           >
             <motion.div
               animate={{ rotate: 360, scale: [1, 1.1, 1], filter: ['drop-shadow(0 0 10px #ec4899)', 'drop-shadow(0 0 25px #f4a5a5)', 'drop-shadow(0 0 10px #ec4899)'] }}
