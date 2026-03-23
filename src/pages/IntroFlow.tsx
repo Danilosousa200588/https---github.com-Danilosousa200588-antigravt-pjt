@@ -273,29 +273,55 @@ export default function IntroFlow() {
         }
         .neon-grid {
           animation: moveGrid 10s linear infinite, pulseOpacity 6s ease-in-out infinite;
+          will-change: background-position, opacity;
         }
         .neon-orb {
           animation: pulseOrb 8s ease-in-out infinite;
           background: radial-gradient(circle at 50% 50%, rgba(236,72,153,0.25), transparent 60%);
+          will-change: transform, opacity;
         }
         .neon-card {
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
+          will-change: transform, opacity;
+        }
+        :root {
+          --heart-filter-1: drop-shadow(0 0 15px #ec4899);
+          --heart-filter-2: drop-shadow(0 0 35px #f4a5a5);
+          --btn-shadow: 0 0 20px #ec4899;
+          --txt-shadow: 0 0 10px #ec4899;
         }
         /* Mobile Specific Optimizations */
         @media (max-width: 640px) {
+          :root {
+            --heart-filter-1: none;
+            --heart-filter-2: none;
+            --btn-shadow: 0 0 5px rgba(236, 72, 153, 0.3);
+            --txt-shadow: none;
+          }
+          .neon-grid {
+            animation: moveGrid 20s linear infinite; /* Slower animation on mobile */
+            opacity: 0.15 !important;
+          }
           .neon-card {
-             backdrop-filter: none; /* Disables heavy backdrop-blur on mobile */
-             -webkit-backdrop-filter: none;
-             background-color: rgba(30, 13, 48, 0.95); /* More solid background for readability */
-             box-shadow: 0 0 15px rgba(236, 72, 153, 0.2); /* Lighter shadow */
+             backdrop-filter: none !important; /* Disables heavy backdrop-blur on mobile */
+             -webkit-backdrop-filter: none !important;
+             background-color: rgba(30, 13, 48, 0.98) !important; /* More solid background for readability */
+             box-shadow: 0 0 15px rgba(236, 72, 153, 0.2) !important; /* Lighter shadow */
+             border-width: 1px !important;
           }
           .neon-text-main {
              text-shadow: 0 0 8px #ec4899 !important; /* Lighter text-shadow */
           }
           .neon-orb {
-             animation: none; /* Disable background pulse on mobile */
-             opacity: 0.2;
+             animation: none !important; /* Disable background pulse on mobile */
+             opacity: 0.15 !important;
+             transform: scale(1) !important;
+          }
+          /* Optimization for motion components on mobile */
+          .mobile-no-filter {
+            filter: none !important;
+            -webkit-filter: none !important;
           }
         }
       `}</style>
@@ -319,7 +345,15 @@ export default function IntroFlow() {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center z-10 text-center"
           >
-            <motion.div animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0], filter: ['drop-shadow(0 0 15px #ec4899)', 'drop-shadow(0 0 35px #f4a5a5)', 'drop-shadow(0 0 15px #ec4899)'] }} transition={{ repeat: Infinity, duration: 1.5 }}>
+            <motion.div 
+              className="will-change-[transform,filter]"
+              animate={{ 
+                scale: [1, 1.2, 1], 
+                rotate: [0, 5, -5, 0], 
+                filter: ['var(--heart-filter-1)', 'var(--heart-filter-2)', 'var(--heart-filter-1)'] 
+              }} 
+              transition={{ repeat: Infinity, duration: 1.5 }}
+            >
               <Heart className="text-pink-400 fill-pink-400 w-12 h-12 mb-6" />
             </motion.div>
             <motion.p 
@@ -409,7 +443,7 @@ export default function IntroFlow() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9, y: -20 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10"
+            className="w-full max-w-md bg-purple-950/20 rounded-3xl p-8 sm:p-12 border border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col items-center text-center z-10 neon-card"
           >
             <motion.div 
               initial={{ scale: 0, rotate: -180 }}
@@ -574,20 +608,27 @@ export default function IntroFlow() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -40, scale: 0.9 }}
             transition={{ duration: 0.7, type: "spring", bounce: 0.3 }}
-            className="w-full max-w-md bg-purple-950/20 backdrop-blur-xl rounded-3xl p-6 sm:p-10 border border-pink-500/50 shadow-[0_0_40px_rgba(236,72,153,0.4),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col z-10 relative overflow-hidden"
+            className="w-full max-w-md bg-purple-950/20 rounded-3xl p-6 sm:p-10 border border-pink-500/50 shadow-[0_0_40px_rgba(236,72,153,0.4),inset_0_0_20px_rgba(236,72,153,0.2)] flex flex-col z-10 relative overflow-hidden neon-card"
           >
             <motion.div
-              className="absolute inset-0 bg-gradient-to-br from-pink-500/20 via-transparent to-purple-500/20"
+              className="absolute inset-0 bg-gradient-to-br from-pink-500/20 via-transparent to-purple-500/20 will-change-opacity"
               animate={{ opacity: [0.4, 0.8, 0.4] }}
               transition={{ duration: 3, repeat: Infinity }}
             />
             <div className="flex flex-col items-center mb-8 relative z-10">
-              <motion.div animate={{ scale: [1, 1.2, 1], filter: ['drop-shadow(0 0 15px #f4a5a5)', 'drop-shadow(0 0 30px #ec4899)', 'drop-shadow(0 0 15px #f4a5a5)'] }} transition={{ repeat: Infinity, duration: 1.5 }}>
+              <motion.div 
+                className="will-change-[transform,filter]"
+                animate={{ 
+                  scale: [1, 1.2, 1], 
+                  filter: ['var(--heart-filter-1)', 'var(--heart-filter-2)', 'var(--heart-filter-1)'] 
+                }} 
+                transition={{ repeat: Infinity, duration: 1.5 }}
+              >
                 <Heart className="text-pink-300 fill-pink-300 w-12 h-12 mb-4" />
               </motion.div>
               <motion.h2 
                 initial={{ opacity: 0, y: -10 }} 
-                animate={{ opacity: 1, y: 0, textShadow: ['0 0 10px #ec4899', '0 0 25px #f4a5a5', '0 0 10px #ec4899'] }} 
+                animate={{ opacity: 1, y: 0, textShadow: ['var(--txt-shadow)', '0 0 25px #f4a5a5', 'var(--txt-shadow)'] }} 
                 transition={{ opacity: { delay: 0.3 }, y: { delay: 0.3 }, textShadow: { repeat: Infinity, duration: 2.5 } }} 
                 className="text-2xl font-serif text-pink-50 tracking-wide"
               >
@@ -629,7 +670,7 @@ export default function IntroFlow() {
             </motion.p>
             <motion.button 
               initial={{ opacity: 0, y: 20, boxShadow: "0 0 0px #ec4899" }}
-              animate={{ opacity: 1, y: 0, boxShadow: ["0 0 20px #ec4899", "0 0 40px #f4a5a5", "0 0 20px #ec4899"] }}
+              animate={{ opacity: 1, y: 0, boxShadow: ["var(--btn-shadow)", "0 0 40px #f4a5a5", "var(--btn-shadow)"] }}
               transition={{ opacity: { delay: 2.2 }, y: { delay: 2.2 }, boxShadow: { repeat: Infinity, duration: 2 } }}
               onClick={() => showLoading(7, 'Selando o nosso amor...')} 
               className="w-full py-4 bg-pink-500 border border-pink-300 text-white rounded-[2rem] font-bold tracking-widest text-sm transition-all relative z-10 hover:scale-105 hover:bg-pink-400"
@@ -647,7 +688,15 @@ export default function IntroFlow() {
             transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
             className="flex flex-col items-center justify-center text-center z-10 w-full max-w-md px-6"
           >
-            <motion.div animate={{ scale: [1, 1.3, 1], rotate: [0, 5, -5, 0], filter: ['drop-shadow(0 0 20px #ec4899)', 'drop-shadow(0 0 50px #f4a5a5)', 'drop-shadow(0 0 20px #ec4899)'] }} transition={{ repeat: Infinity, duration: 2 }}>
+            <motion.div 
+              className="will-change-[transform,filter]"
+              animate={{ 
+                scale: [1, 1.3, 1], 
+                rotate: [0, 5, -5, 0], 
+                filter: ['drop-shadow(0 0 20px #ec4899)', 'var(--heart-filter-2)', 'drop-shadow(0 0 20px #ec4899)'] 
+              }} 
+              transition={{ repeat: Infinity, duration: 2 }}
+            >
               <Heart className="text-pink-400 fill-pink-400 w-24 h-24 mb-6" />
             </motion.div>
             <motion.h1 
@@ -670,10 +719,10 @@ export default function IntroFlow() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2 }}
-              className="w-full"
+              className="w-full will-change-[opacity,transform]"
             >
               <motion.button 
-                animate={{ boxShadow: ["0 0 20px #ec4899", "0 0 50px #ec4899", "0 0 20px #ec4899"] }}
+                animate={{ boxShadow: ["var(--btn-shadow)", "0 0 50px #ec4899", "var(--btn-shadow)"] }}
                 transition={{ repeat: Infinity, duration: 2 }}
                 onClick={handleNextStep} 
                 disabled={isFinishing}
